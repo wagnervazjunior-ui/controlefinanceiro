@@ -29,39 +29,77 @@ export default function ImportPage() {
   const [faturaCardId, setFaturaCardId] = useState("");
   const [faturaYear, setFaturaYear] = useState(new Date().getFullYear().toString());
   const [faturaResult, setFaturaResult] = useState<ImportResult | null>(null);
+  const [faturaError, setFaturaError] = useState<string | null>(null);
+  const [faturaSubmitting, setFaturaSubmitting] = useState(false);
 
   const [extratoFile, setExtratoFile] = useState<File | null>(null);
   const [extratoAccountId, setExtratoAccountId] = useState("");
   const [extratoYear, setExtratoYear] = useState(new Date().getFullYear().toString());
   const [extratoMonth, setExtratoMonth] = useState((new Date().getMonth() + 1).toString());
   const [extratoResult, setExtratoResult] = useState<ImportResult | null>(null);
+  const [extratoError, setExtratoError] = useState<string | null>(null);
+  const [extratoSubmitting, setExtratoSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch("/api/cards").then((r) => r.json()).then(setCards);
-    fetch("/api/bank-accounts").then((r) => r.json()).then(setBankAccounts);
+    fetch("/api/cards")
+      .then((r) => r.json())
+      .then(setCards)
+      .catch((err) => console.error("Failed to load cards:", err));
+    fetch("/api/bank-accounts")
+      .then((r) => r.json())
+      .then(setBankAccounts)
+      .catch((err) => console.error("Failed to load bank accounts:", err));
   }, []);
 
   async function submitFatura(e: React.FormEvent) {
     e.preventDefault();
     if (!faturaFile || !faturaCardId) return;
-    const formData = new FormData();
-    formData.append("file", faturaFile);
-    formData.append("cardId", faturaCardId);
-    formData.append("referenceYear", faturaYear);
-    const response = await fetch("/api/statement-imports/fatura", { method: "POST", body: formData });
-    setFaturaResult(await response.json());
+    setFaturaError(null);
+    setFaturaResult(null);
+    setFaturaSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", faturaFile);
+      formData.append("cardId", faturaCardId);
+      formData.append("referenceYear", faturaYear);
+      const response = await fetch("/api/statement-imports/fatura", { method: "POST", body: formData });
+      const body = await response.json();
+      if (!response.ok) {
+        setFaturaError(body?.error ?? "Erro ao importar fatura.");
+        return;
+      }
+      setFaturaResult(body);
+    } catch {
+      setFaturaError("Erro ao importar fatura.");
+    } finally {
+      setFaturaSubmitting(false);
+    }
   }
 
   async function submitExtrato(e: React.FormEvent) {
     e.preventDefault();
     if (!extratoFile || !extratoAccountId) return;
-    const formData = new FormData();
-    formData.append("file", extratoFile);
-    formData.append("bankAccountId", extratoAccountId);
-    formData.append("referenceYear", extratoYear);
-    formData.append("referenceMonth", extratoMonth);
-    const response = await fetch("/api/statement-imports/extrato", { method: "POST", body: formData });
-    setExtratoResult(await response.json());
+    setExtratoError(null);
+    setExtratoResult(null);
+    setExtratoSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", extratoFile);
+      formData.append("bankAccountId", extratoAccountId);
+      formData.append("referenceYear", extratoYear);
+      formData.append("referenceMonth", extratoMonth);
+      const response = await fetch("/api/statement-imports/extrato", { method: "POST", body: formData });
+      const body = await response.json();
+      if (!response.ok) {
+        setExtratoError(body?.error ?? "Erro ao importar extrato.");
+        return;
+      }
+      setExtratoResult(body);
+    } catch {
+      setExtratoError("Erro ao importar extrato.");
+    } finally {
+      setExtratoSubmitting(false);
+    }
   }
 
   return (
@@ -92,10 +130,15 @@ export default function ImportPage() {
             placeholder="Ano"
             required
           />
-          <button type="submit" className="rounded bg-zinc-900 px-3 py-2 text-sm font-medium text-white">
-            Importar fatura
+          <button
+            type="submit"
+            disabled={faturaSubmitting}
+            className="rounded bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {faturaSubmitting ? "Importando..." : "Importar fatura"}
           </button>
         </form>
+        {faturaError && <p className="mt-2 text-sm text-red-600">{faturaError}</p>}
         {faturaResult && (
           <p className="mt-2 text-sm">
             {faturaResult.created} lançamento(s) criado(s), {faturaResult.skipped} ignorado(s) (duplicado).{" "}
@@ -141,10 +184,15 @@ export default function ImportPage() {
             placeholder="Mês (1-12)"
             required
           />
-          <button type="submit" className="rounded bg-zinc-900 px-3 py-2 text-sm font-medium text-white">
-            Importar extrato
+          <button
+            type="submit"
+            disabled={extratoSubmitting}
+            className="rounded bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {extratoSubmitting ? "Importando..." : "Importar extrato"}
           </button>
         </form>
+        {extratoError && <p className="mt-2 text-sm text-red-600">{extratoError}</p>}
         {extratoResult && (
           <p className="mt-2 text-sm">
             {extratoResult.created} lançamento(s) criado(s), {extratoResult.skipped} ignorado(s) (duplicado).{" "}

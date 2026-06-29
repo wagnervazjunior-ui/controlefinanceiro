@@ -49,63 +49,116 @@ export default function SettingsPage() {
   const [splitDrafts, setSplitDrafts] = useState<Record<number, Record<number, string>>>({});
   const [splitMessage, setSplitMessage] = useState<Record<number, string>>({});
 
+  const [personError, setPersonError] = useState<string | null>(null);
+  const [cardError, setCardError] = useState<string | null>(null);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
+
   useEffect(() => {
-    fetch("/api/people").then((r) => r.json()).then(setPeople);
-    fetch("/api/cards").then((r) => r.json()).then(setCards);
-    fetch("/api/bank-accounts").then((r) => r.json()).then(setBankAccounts);
-    fetch("/api/categories").then((r) => r.json()).then(setCategories);
+    fetch("/api/people")
+      .then((r) => r.json())
+      .then(setPeople)
+      .catch((err) => console.error("Failed to load people:", err));
+    fetch("/api/cards")
+      .then((r) => r.json())
+      .then(setCards)
+      .catch((err) => console.error("Failed to load cards:", err));
+    fetch("/api/bank-accounts")
+      .then((r) => r.json())
+      .then(setBankAccounts)
+      .catch((err) => console.error("Failed to load bank accounts:", err));
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then(setCategories)
+      .catch((err) => console.error("Failed to load categories:", err));
   }, []);
 
   async function addPerson(e: React.FormEvent) {
     e.preventDefault();
-    const response = await fetch("/api/people", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: personName }),
-    });
-    const created = await response.json();
-    setPeople((prev) => [...prev, created]);
-    setPersonName("");
+    setPersonError(null);
+    try {
+      const response = await fetch("/api/people", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: personName }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        setPersonError(body?.error ?? "Erro ao adicionar pessoa.");
+        return;
+      }
+      setPeople((prev) => [...prev, body]);
+      setPersonName("");
+    } catch {
+      setPersonError("Erro ao adicionar pessoa.");
+    }
   }
 
   async function addCard(e: React.FormEvent) {
     e.preventDefault();
-    const response = await fetch("/api/cards", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: cardName, lastFourDigits: cardLastFour, bank: cardBank }),
-    });
-    const created = await response.json();
-    setCards((prev) => [...prev, created]);
-    setCardName("");
-    setCardLastFour("");
-    setCardBank("");
+    setCardError(null);
+    try {
+      const response = await fetch("/api/cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: cardName, lastFourDigits: cardLastFour, bank: cardBank }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        setCardError(body?.error ?? "Erro ao adicionar cartão.");
+        return;
+      }
+      setCards((prev) => [...prev, body]);
+      setCardName("");
+      setCardLastFour("");
+      setCardBank("");
+    } catch {
+      setCardError("Erro ao adicionar cartão.");
+    }
   }
 
   async function addBankAccount(e: React.FormEvent) {
     e.preventDefault();
-    const response = await fetch("/api/bank-accounts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: accountName, bank: accountBank }),
-    });
-    const created = await response.json();
-    setBankAccounts((prev) => [...prev, created]);
-    setAccountName("");
-    setAccountBank("");
+    setAccountError(null);
+    try {
+      const response = await fetch("/api/bank-accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: accountName, bank: accountBank }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        setAccountError(body?.error ?? "Erro ao adicionar conta.");
+        return;
+      }
+      setBankAccounts((prev) => [...prev, body]);
+      setAccountName("");
+      setAccountBank("");
+    } catch {
+      setAccountError("Erro ao adicionar conta.");
+    }
   }
 
   async function addCategory(e: React.FormEvent) {
     e.preventDefault();
-    const response = await fetch("/api/categories", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: categoryName, bankTagAlias: categoryTag || null }),
-    });
-    const created = await response.json();
-    setCategories((prev) => [...prev, created]);
-    setCategoryName("");
-    setCategoryTag("");
+    setCategoryError(null);
+    try {
+      const response = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: categoryName, bankTagAlias: categoryTag || null }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        setCategoryError(body?.error ?? "Erro ao adicionar categoria.");
+        return;
+      }
+      setCategories((prev) => [...prev, body]);
+      setCategoryName("");
+      setCategoryTag("");
+    } catch {
+      setCategoryError("Erro ao adicionar categoria.");
+    }
   }
 
   function updateSplitDraft(categoryId: number, personId: number, value: string) {
@@ -162,6 +215,7 @@ export default function SettingsPage() {
               Adicionar
             </button>
           </form>
+          {personError && <p className="mb-2 text-sm text-red-600">{personError}</p>}
           <ul className="text-sm">
             {people.map((p) => (
               <li key={p.id} className="border-b py-1">
@@ -201,6 +255,7 @@ export default function SettingsPage() {
               Adicionar
             </button>
           </form>
+          {cardError && <p className="mb-2 text-sm text-red-600">{cardError}</p>}
           <ul className="text-sm">
             {cards.map((c) => (
               <li key={c.id} className="border-b py-1">
@@ -232,6 +287,7 @@ export default function SettingsPage() {
               Adicionar
             </button>
           </form>
+          {accountError && <p className="mb-2 text-sm text-red-600">{accountError}</p>}
           <ul className="text-sm">
             {bankAccounts.map((a) => (
               <li key={a.id} className="border-b py-1">
@@ -262,6 +318,7 @@ export default function SettingsPage() {
               Adicionar
             </button>
           </form>
+          {categoryError && <p className="mb-2 text-sm text-red-600">{categoryError}</p>}
 
           <ul className="flex flex-col gap-4 text-sm">
             {categories.map((c) => (
