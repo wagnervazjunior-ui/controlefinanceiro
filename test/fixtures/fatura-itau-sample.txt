@@ -1,0 +1,20 @@
+Lançamentos: compras e saques
+WAGNER A V JUNIOR
+DATA ESTABELECIMENTO VALOR EM R$
+09/11 NCL *60319496 07/12 1.316,56
+viagem SAO PAULO
+03/12 CENTAURO.COM 06/08 75,06
+outros EXTREMA
+03/05 APPLE.COM/BILL.SAO PAUL 30,90
+outros SAO PAULO
+05/05 MP *MERCADOSELLERCONSSo -1.800,00
+serviços So Paulo
+18/04 ZP *ECOMME 02/06 3.000,00
+educacao Franca
+
+Lançamentos: produtos e serviços
+DATA PRODUTOS/SERVIÇOS VALOR EM R$
+02/05 Mensalidade - Plano do 105,00
+Anuidade Diferenciada
+09/05 Redução Mensalidade - P -52,50
+Anuidade Diferenciada
