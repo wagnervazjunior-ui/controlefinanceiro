@@ -6,9 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "vitest run",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "test": "node --env-file=.env.local node_modules/.bin/vitest run",
+    "db:generate": "node --env-file=.env.local node_modules/.bin/drizzle-kit generate",
+    "db:migrate": "node --env-file=.env.local node_modules/.bin/drizzle-kit migrate"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
