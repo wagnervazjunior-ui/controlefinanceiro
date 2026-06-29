@@ -20,6 +20,12 @@ interface BankAccount {
   bank: string;
 }
 
+interface Category {
+  id: number;
+  name: string;
+  bankTagAlias: string | null;
+}
+
 type Tab = "pessoas" | "cartoes" | "contas" | "categorias";
 
 export default function SettingsPage() {
@@ -37,10 +43,17 @@ export default function SettingsPage() {
   const [accountName, setAccountName] = useState("");
   const [accountBank, setAccountBank] = useState("");
 
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryName, setCategoryName] = useState("");
+  const [categoryTag, setCategoryTag] = useState("");
+  const [splitDrafts, setSplitDrafts] = useState<Record<number, Record<number, string>>>({});
+  const [splitMessage, setSplitMessage] = useState<Record<number, string>>({});
+
   useEffect(() => {
     fetch("/api/people").then((r) => r.json()).then(setPeople);
     fetch("/api/cards").then((r) => r.json()).then(setCards);
     fetch("/api/bank-accounts").then((r) => r.json()).then(setBankAccounts);
+    fetch("/api/categories").then((r) => r.json()).then(setCategories);
   }, []);
 
   async function addPerson(e: React.FormEvent) {
@@ -80,6 +93,45 @@ export default function SettingsPage() {
     setBankAccounts((prev) => [...prev, created]);
     setAccountName("");
     setAccountBank("");
+  }
+
+  async function addCategory(e: React.FormEvent) {
+    e.preventDefault();
+    const response = await fetch("/api/categories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: categoryName, bankTagAlias: categoryTag || null }),
+    });
+    const created = await response.json();
+    setCategories((prev) => [...prev, created]);
+    setCategoryName("");
+    setCategoryTag("");
+  }
+
+  function updateSplitDraft(categoryId: number, personId: number, value: string) {
+    setSplitDrafts((prev) => ({
+      ...prev,
+      [categoryId]: { ...prev[categoryId], [personId]: value },
+    }));
+  }
+
+  async function saveSplits(categoryId: number) {
+    const draft = splitDrafts[categoryId] ?? {};
+    const splits = people.map((p) => ({
+      personId: p.id,
+      percentage: Number(draft[p.id] ?? 0),
+    }));
+    const response = await fetch(`/api/categories/${categoryId}/splits`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(splits),
+    });
+    if (response.ok) {
+      setSplitMessage((prev) => ({ ...prev, [categoryId]: "Splits salvos." }));
+    } else {
+      const body = await response.json();
+      setSplitMessage((prev) => ({ ...prev, [categoryId]: body.error ?? "Erro ao salvar splits." }));
+    }
   }
 
   return (
@@ -191,7 +243,58 @@ export default function SettingsPage() {
       )}
 
       {tab === "categorias" && (
-        <p className="text-sm text-zinc-500">Carregando categorias...</p>
+        <div>
+          <form onSubmit={addCategory} className="mb-4 flex gap-2 max-w-md">
+            <input
+              value={categoryName}
+              onChange={(e) => setCategoryName(e.target.value)}
+              placeholder="Nome da categoria"
+              className="flex-1 rounded border px-3 py-2 text-sm"
+              required
+            />
+            <input
+              value={categoryTag}
+              onChange={(e) => setCategoryTag(e.target.value)}
+              placeholder="Tag do banco (opcional)"
+              className="w-48 rounded border px-3 py-2 text-sm"
+            />
+            <button type="submit" className="rounded bg-zinc-900 px-3 py-2 text-sm text-white">
+              Adicionar
+            </button>
+          </form>
+
+          <ul className="flex flex-col gap-4 text-sm">
+            {categories.map((c) => (
+              <li key={c.id} className="rounded border p-3">
+                <p className="mb-2 font-medium">
+                  {c.name} {c.bankTagAlias && <span className="text-zinc-500">({c.bankTagAlias})</span>}
+                </p>
+                <p className="mb-2 text-xs text-zinc-500">Divisão por pessoa (% deve somar 100):</p>
+                <div className="flex flex-wrap gap-2">
+                  {people.map((p) => (
+                    <label key={p.id} className="flex items-center gap-1">
+                      <span className="text-xs">{p.name}</span>
+                      <input
+                        type="number"
+                        className="w-16 rounded border px-2 py-1 text-xs"
+                        value={splitDrafts[c.id]?.[p.id] ?? ""}
+                        onChange={(e) => updateSplitDraft(c.id, p.id, e.target.value)}
+                      />
+                      <span className="text-xs">%</span>
+                    </label>
+                  ))}
+                  <button
+                    onClick={() => saveSplits(c.id)}
+                    className="rounded bg-zinc-900 px-2 py-1 text-xs text-white"
+                  >
+                    Salvar splits
+                  </button>
+                </div>
+                {splitMessage[c.id] && <p className="mt-1 text-xs text-zinc-600">{splitMessage[c.id]}</p>}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
