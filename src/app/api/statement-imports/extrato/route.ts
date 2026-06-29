@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { extractPdfText } from "../../../../lib/pdf-text";
 import { importExtrato } from "../../../../lib/statement-import-service";
 
+// pdf-parse reads from the Node fs module; force the Node.js runtime
+// (not Edge) so it works in deployed Vercel functions.
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const file = formData.get("file") as File;
