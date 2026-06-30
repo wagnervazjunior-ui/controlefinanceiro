@@ -30,7 +30,7 @@ export const categorySplits = pgTable("category_splits", {
 export const cards = pgTable("cards", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  lastFourDigits: varchar("last_four_digits", { length: 4 }).notNull(),
+  lastFourDigits: varchar("last_four_digits", { length: 4 }),
   bank: text("bank").notNull(),
 });
 

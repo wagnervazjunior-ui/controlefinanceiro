@@ -6,7 +6,7 @@ import Link from "next/link";
 interface Card {
   id: number;
   name: string;
-  lastFourDigits: string;
+  lastFourDigits: string | null;
   bank: string;
 }
 
@@ -119,7 +119,7 @@ export default function ImportPage() {
             </option>
             {cards.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name} ({c.lastFourDigits})
+                {c.name}{c.lastFourDigits && ` (${c.lastFourDigits})`}
               </option>
             ))}
           </select>

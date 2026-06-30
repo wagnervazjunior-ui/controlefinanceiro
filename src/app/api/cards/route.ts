@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const [created] = await db
     .insert(cards)
-    .values({ name: body.name, lastFourDigits: body.lastFourDigits, bank: body.bank })
+    .values({ name: body.name, lastFourDigits: body.lastFourDigits || null, bank: body.bank })
     .returning();
   return NextResponse.json(created, { status: 201 });
 }

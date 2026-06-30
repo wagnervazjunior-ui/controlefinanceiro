@@ -1,0 +1,1 @@
+ALTER TABLE "cards" ALTER COLUMN "last_four_digits" DROP NOT NULL;

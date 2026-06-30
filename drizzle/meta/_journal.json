@@ -8,6 +8,13 @@
       "when": 1782738180046,
       "tag": "0000_elite_maria_hill",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782851241729,
+      "tag": "0001_square_starfox",
+      "breakpoints": true
     }
   ]
 }

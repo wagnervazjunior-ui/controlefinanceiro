@@ -10,7 +10,7 @@ interface Person {
 interface Card {
   id: number;
   name: string;
-  lastFourDigits: string;
+  lastFourDigits: string | null;
   bank: string;
 }
 
@@ -264,10 +264,9 @@ export default function SettingsPage() {
             <input
               value={cardLastFour}
               onChange={(e) => setCardLastFour(e.target.value)}
-              placeholder="Últimos 4 dígitos"
+              placeholder="Últimos 4 dígitos (opcional)"
               maxLength={4}
               className="w-32 rounded border px-3 py-2 text-sm"
-              required
             />
             <input
               value={cardBank}
@@ -284,7 +283,7 @@ export default function SettingsPage() {
           <ul className="text-sm">
             {cards.map((c) => (
               <li key={c.id} className="border-b py-1">
-                {c.name} •••• {c.lastFourDigits} ({c.bank})
+                {c.name} {c.lastFourDigits && <>•••• {c.lastFourDigits}</>} ({c.bank})
               </li>
             ))}
           </ul>
