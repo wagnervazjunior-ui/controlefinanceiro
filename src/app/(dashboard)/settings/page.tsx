@@ -78,57 +78,73 @@ export default function SettingsPage() {
   async function addPerson(e: React.FormEvent) {
     e.preventDefault();
     setPersonError(null);
-    const response = await fetch("/api/people", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: personName }),
-    });
-    const body = await response.json();
-    if (!response.ok) { setPersonError(body?.error ?? "Erro ao adicionar pessoa."); return; }
-    setPeople((prev) => [...prev, body]);
-    setPersonName("");
+    try {
+      const response = await fetch("/api/people", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: personName }),
+      });
+      const body = await response.json();
+      if (!response.ok) { setPersonError(body?.error ?? "Erro ao adicionar pessoa."); return; }
+      setPeople((prev) => [...prev, body]);
+      setPersonName("");
+    } catch {
+      setPersonError("Erro ao adicionar pessoa.");
+    }
   }
 
   async function addCard(e: React.FormEvent) {
     e.preventDefault();
     setCardError(null);
-    const response = await fetch("/api/cards", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: cardName, lastFourDigits: cardLastFour, bank: cardBank }),
-    });
-    const body = await response.json();
-    if (!response.ok) { setCardError(body?.error ?? "Erro ao adicionar cartão."); return; }
-    setCards((prev) => [...prev, body]);
-    setCardName(""); setCardLastFour(""); setCardBank("");
+    try {
+      const response = await fetch("/api/cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: cardName, lastFourDigits: cardLastFour, bank: cardBank }),
+      });
+      const body = await response.json();
+      if (!response.ok) { setCardError(body?.error ?? "Erro ao adicionar cartão."); return; }
+      setCards((prev) => [...prev, body]);
+      setCardName(""); setCardLastFour(""); setCardBank("");
+    } catch {
+      setCardError("Erro ao adicionar cartão.");
+    }
   }
 
   async function addBankAccount(e: React.FormEvent) {
     e.preventDefault();
     setAccountError(null);
-    const response = await fetch("/api/bank-accounts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: accountName, bank: accountBank }),
-    });
-    const body = await response.json();
-    if (!response.ok) { setAccountError(body?.error ?? "Erro ao adicionar conta."); return; }
-    setBankAccounts((prev) => [...prev, body]);
-    setAccountName(""); setAccountBank("");
+    try {
+      const response = await fetch("/api/bank-accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: accountName, bank: accountBank }),
+      });
+      const body = await response.json();
+      if (!response.ok) { setAccountError(body?.error ?? "Erro ao adicionar conta."); return; }
+      setBankAccounts((prev) => [...prev, body]);
+      setAccountName(""); setAccountBank("");
+    } catch {
+      setAccountError("Erro ao adicionar conta.");
+    }
   }
 
   async function addCategory(e: React.FormEvent) {
     e.preventDefault();
     setCategoryError(null);
-    const response = await fetch("/api/categories", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: categoryName, bankTagAlias: categoryTag || null }),
-    });
-    const body = await response.json();
-    if (!response.ok) { setCategoryError(body?.error ?? "Erro ao adicionar categoria."); return; }
-    setCategories((prev) => [...prev, body]);
-    setCategoryName(""); setCategoryTag("");
+    try {
+      const response = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: categoryName, bankTagAlias: categoryTag || null }),
+      });
+      const body = await response.json();
+      if (!response.ok) { setCategoryError(body?.error ?? "Erro ao adicionar categoria."); return; }
+      setCategories((prev) => [...prev, body]);
+      setCategoryName(""); setCategoryTag("");
+    } catch {
+      setCategoryError("Erro ao adicionar categoria.");
+    }
   }
 
   function updateSplitDraft(categoryId: number, personId: number, value: string) {
@@ -153,16 +169,21 @@ export default function SettingsPage() {
 
   async function confirmDeleteItem(tab: Tab, id: number, endpoint: string) {
     setDeleteError({});
-    const response = await fetch(`${endpoint}/${id}`, { method: "DELETE" });
-    if (response.status === 204) {
-      if (tab === "pessoas") setPeople((prev) => prev.filter((x) => x.id !== id));
-      if (tab === "cartoes") setCards((prev) => prev.filter((x) => x.id !== id));
-      if (tab === "contas") setBankAccounts((prev) => prev.filter((x) => x.id !== id));
-      if (tab === "categorias") setCategories((prev) => prev.filter((x) => x.id !== id));
-      setConfirmDelete((prev) => ({ ...prev, [tab]: null }));
-    } else {
-      const body = await response.json().catch(() => ({}));
-      setDeleteError((prev) => ({ ...prev, [id]: body.error ?? "Erro ao excluir." }));
+    try {
+      const response = await fetch(`${endpoint}/${id}`, { method: "DELETE" });
+      if (response.status === 204) {
+        if (tab === "pessoas") setPeople((prev) => prev.filter((x) => x.id !== id));
+        if (tab === "cartoes") setCards((prev) => prev.filter((x) => x.id !== id));
+        if (tab === "contas") setBankAccounts((prev) => prev.filter((x) => x.id !== id));
+        if (tab === "categorias") setCategories((prev) => prev.filter((x) => x.id !== id));
+        setConfirmDelete((prev) => ({ ...prev, [tab]: null }));
+      } else {
+        const body = await response.json().catch(() => ({}));
+        setDeleteError((prev) => ({ ...prev, [id]: body.error ?? "Erro ao excluir." }));
+        setConfirmDelete((prev) => ({ ...prev, [tab]: null }));
+      }
+    } catch {
+      setDeleteError((prev) => ({ ...prev, [id]: "Erro de conexão." }));
       setConfirmDelete((prev) => ({ ...prev, [tab]: null }));
     }
   }

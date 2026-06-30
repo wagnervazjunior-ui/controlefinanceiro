@@ -9,6 +9,7 @@ export async function DELETE(
 ) {
   const { id } = await params;
   const accountId = Number(id);
+  if (isNaN(accountId)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
   const imports = await db.select().from(statementImports).where(eq(statementImports.bankAccountId, accountId));
   if (imports.length > 0) {

@@ -9,6 +9,7 @@ export async function DELETE(
 ) {
   const { id } = await params;
   const personId = Number(id);
+  if (isNaN(personId)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
   const splits = await db.select().from(categorySplits).where(eq(categorySplits.personId, personId));
   if (splits.length > 0) {
