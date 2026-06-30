@@ -2,78 +2,57 @@
 
 import { useEffect, useState } from "react";
 
-interface Person {
-  id: number;
-  name: string;
-}
-
-interface Card {
-  id: number;
-  name: string;
-  lastFourDigits: string | null;
-  bank: string;
-}
-
-interface BankAccount {
-  id: number;
-  name: string;
-  bank: string;
-}
-
-interface Category {
-  id: number;
-  name: string;
-  bankTagAlias: string | null;
-}
+interface Person { id: number; name: string; }
+interface Card { id: number; name: string; lastFourDigits: string | null; bank: string; }
+interface BankAccount { id: number; name: string; bank: string; }
+interface Category { id: number; name: string; bankTagAlias: string | null; }
 
 type Tab = "pessoas" | "cartoes" | "contas" | "categorias";
-
 const TAB_LABELS: Record<Tab, string> = {
-  pessoas: "Pessoas",
-  cartoes: "Cartões",
-  contas: "Contas",
-  categorias: "Categorias",
+  pessoas: "Pessoas", cartoes: "Cartões", contas: "Contas", categorias: "Categorias",
 };
+
+const inputClass = "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none";
+const labelClass = "text-sm font-medium text-zinc-700";
+const btnPrimary = "rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors";
+const btnDestructive = "rounded border border-red-200 px-3 py-1 text-sm text-red-600 hover:bg-red-50 transition-colors";
+const btnSecondary = "rounded border border-zinc-300 px-3 py-1 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors";
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("pessoas");
 
   const [people, setPeople] = useState<Person[]>([]);
   const [personName, setPersonName] = useState("");
+  const [personError, setPersonError] = useState<string | null>(null);
 
   const [cards, setCards] = useState<Card[]>([]);
   const [cardName, setCardName] = useState("");
   const [cardLastFour, setCardLastFour] = useState("");
   const [cardBank, setCardBank] = useState("");
+  const [cardError, setCardError] = useState<string | null>(null);
 
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [accountName, setAccountName] = useState("");
   const [accountBank, setAccountBank] = useState("");
+  const [accountError, setAccountError] = useState<string | null>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryName, setCategoryName] = useState("");
   const [categoryTag, setCategoryTag] = useState("");
+  const [categoryError, setCategoryError] = useState<string | null>(null);
   const [splitDrafts, setSplitDrafts] = useState<Record<number, Record<number, string>>>({});
   const [splitMessage, setSplitMessage] = useState<Record<number, string>>({});
 
-  const [personError, setPersonError] = useState<string | null>(null);
-  const [cardError, setCardError] = useState<string | null>(null);
-  const [accountError, setAccountError] = useState<string | null>(null);
-  const [categoryError, setCategoryError] = useState<string | null>(null);
+  // confirmDelete[tab] = id being confirmed, or null
+  const [confirmDelete, setConfirmDelete] = useState<Record<Tab, number | null>>({
+    pessoas: null, cartoes: null, contas: null, categorias: null,
+  });
+  const [deleteError, setDeleteError] = useState<Record<number, string>>({});
 
   useEffect(() => {
-    fetch("/api/people")
-      .then((r) => r.json())
-      .then(setPeople)
-      .catch((err) => console.error("Failed to load people:", err));
-    fetch("/api/cards")
-      .then((r) => r.json())
-      .then(setCards)
-      .catch((err) => console.error("Failed to load cards:", err));
-    fetch("/api/bank-accounts")
-      .then((r) => r.json())
-      .then(setBankAccounts)
-      .catch((err) => console.error("Failed to load bank accounts:", err));
+    fetch("/api/people").then((r) => r.json()).then(setPeople).catch(console.error);
+    fetch("/api/cards").then((r) => r.json()).then(setCards).catch(console.error);
+    fetch("/api/bank-accounts").then((r) => r.json()).then(setBankAccounts).catch(console.error);
     fetch("/api/categories")
       .then((r) => r.json())
       .then(async (cats: Category[]) => {
@@ -85,9 +64,7 @@ export default function SettingsPage() {
               .then((r) => r.json())
               .then((splits: { personId: number; percentage: string }[]) => {
                 if (splits.length > 0) {
-                  drafts[c.id] = Object.fromEntries(
-                    splits.map((s) => [s.personId, s.percentage])
-                  );
+                  drafts[c.id] = Object.fromEntries(splits.map((s) => [s.personId, s.percentage]));
                 }
               })
               .catch(() => {})
@@ -95,110 +72,72 @@ export default function SettingsPage() {
         );
         setSplitDrafts(drafts);
       })
-      .catch((err) => console.error("Failed to load categories:", err));
+      .catch(console.error);
   }, []);
 
   async function addPerson(e: React.FormEvent) {
     e.preventDefault();
     setPersonError(null);
-    try {
-      const response = await fetch("/api/people", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: personName }),
-      });
-      const body = await response.json();
-      if (!response.ok) {
-        setPersonError(body?.error ?? "Erro ao adicionar pessoa.");
-        return;
-      }
-      setPeople((prev) => [...prev, body]);
-      setPersonName("");
-    } catch {
-      setPersonError("Erro ao adicionar pessoa.");
-    }
+    const response = await fetch("/api/people", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: personName }),
+    });
+    const body = await response.json();
+    if (!response.ok) { setPersonError(body?.error ?? "Erro ao adicionar pessoa."); return; }
+    setPeople((prev) => [...prev, body]);
+    setPersonName("");
   }
 
   async function addCard(e: React.FormEvent) {
     e.preventDefault();
     setCardError(null);
-    try {
-      const response = await fetch("/api/cards", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: cardName, lastFourDigits: cardLastFour, bank: cardBank }),
-      });
-      const body = await response.json();
-      if (!response.ok) {
-        setCardError(body?.error ?? "Erro ao adicionar cartão.");
-        return;
-      }
-      setCards((prev) => [...prev, body]);
-      setCardName("");
-      setCardLastFour("");
-      setCardBank("");
-    } catch {
-      setCardError("Erro ao adicionar cartão.");
-    }
+    const response = await fetch("/api/cards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: cardName, lastFourDigits: cardLastFour, bank: cardBank }),
+    });
+    const body = await response.json();
+    if (!response.ok) { setCardError(body?.error ?? "Erro ao adicionar cartão."); return; }
+    setCards((prev) => [...prev, body]);
+    setCardName(""); setCardLastFour(""); setCardBank("");
   }
 
   async function addBankAccount(e: React.FormEvent) {
     e.preventDefault();
     setAccountError(null);
-    try {
-      const response = await fetch("/api/bank-accounts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: accountName, bank: accountBank }),
-      });
-      const body = await response.json();
-      if (!response.ok) {
-        setAccountError(body?.error ?? "Erro ao adicionar conta.");
-        return;
-      }
-      setBankAccounts((prev) => [...prev, body]);
-      setAccountName("");
-      setAccountBank("");
-    } catch {
-      setAccountError("Erro ao adicionar conta.");
-    }
+    const response = await fetch("/api/bank-accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: accountName, bank: accountBank }),
+    });
+    const body = await response.json();
+    if (!response.ok) { setAccountError(body?.error ?? "Erro ao adicionar conta."); return; }
+    setBankAccounts((prev) => [...prev, body]);
+    setAccountName(""); setAccountBank("");
   }
 
   async function addCategory(e: React.FormEvent) {
     e.preventDefault();
     setCategoryError(null);
-    try {
-      const response = await fetch("/api/categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: categoryName, bankTagAlias: categoryTag || null }),
-      });
-      const body = await response.json();
-      if (!response.ok) {
-        setCategoryError(body?.error ?? "Erro ao adicionar categoria.");
-        return;
-      }
-      setCategories((prev) => [...prev, body]);
-      setCategoryName("");
-      setCategoryTag("");
-    } catch {
-      setCategoryError("Erro ao adicionar categoria.");
-    }
+    const response = await fetch("/api/categories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: categoryName, bankTagAlias: categoryTag || null }),
+    });
+    const body = await response.json();
+    if (!response.ok) { setCategoryError(body?.error ?? "Erro ao adicionar categoria."); return; }
+    setCategories((prev) => [...prev, body]);
+    setCategoryName(""); setCategoryTag("");
   }
 
   function updateSplitDraft(categoryId: number, personId: number, value: string) {
-    setSplitDrafts((prev) => ({
-      ...prev,
-      [categoryId]: { ...prev[categoryId], [personId]: value },
-    }));
+    setSplitDrafts((prev) => ({ ...prev, [categoryId]: { ...prev[categoryId], [personId]: value } }));
   }
 
   async function saveSplits(categoryId: number) {
     const draft = splitDrafts[categoryId] ?? {};
-    const splits = people.map((p) => ({
-      personId: p.id,
-      percentage: Number(draft[p.id] ?? 0),
-    }));
+    const splits = people.map((p) => ({ personId: p.id, percentage: Number(draft[p.id] ?? 0) }));
     const response = await fetch(`/api/categories/${categoryId}/splits`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -212,14 +151,58 @@ export default function SettingsPage() {
     }
   }
 
+  async function confirmDeleteItem(tab: Tab, id: number, endpoint: string) {
+    setDeleteError({});
+    const response = await fetch(`${endpoint}/${id}`, { method: "DELETE" });
+    if (response.status === 204) {
+      if (tab === "pessoas") setPeople((prev) => prev.filter((x) => x.id !== id));
+      if (tab === "cartoes") setCards((prev) => prev.filter((x) => x.id !== id));
+      if (tab === "contas") setBankAccounts((prev) => prev.filter((x) => x.id !== id));
+      if (tab === "categorias") setCategories((prev) => prev.filter((x) => x.id !== id));
+      setConfirmDelete((prev) => ({ ...prev, [tab]: null }));
+    } else {
+      const body = await response.json().catch(() => ({}));
+      setDeleteError((prev) => ({ ...prev, [id]: body.error ?? "Erro ao excluir." }));
+      setConfirmDelete((prev) => ({ ...prev, [tab]: null }));
+    }
+  }
+
+  function DeleteControls({ tab, id, endpoint }: { tab: Tab; id: number; endpoint: string }) {
+    const isConfirming = confirmDelete[tab] === id;
+    return (
+      <div className="flex items-center gap-2 shrink-0">
+        {deleteError[id] && <span className="text-xs text-red-500">{deleteError[id]}</span>}
+        {isConfirming ? (
+          <>
+            <span className="text-xs text-zinc-500">Tem certeza?</span>
+            <button onClick={() => confirmDeleteItem(tab, id, endpoint)} className={btnDestructive}>
+              Confirmar
+            </button>
+            <button onClick={() => setConfirmDelete((prev) => ({ ...prev, [tab]: null }))} className={btnSecondary}>
+              Cancelar
+            </button>
+          </>
+        ) : (
+          <button onClick={() => setConfirmDelete((prev) => ({ ...prev, [tab]: id }))} className={btnDestructive}>
+            Excluir
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6">
-      <div className="mb-4 flex gap-2 border-b">
+    <div className="p-8 max-w-2xl">
+      <div className="mb-6 flex gap-1 border-b border-zinc-200">
         {(["pessoas", "cartoes", "contas", "categorias"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-3 py-2 text-sm ${tab === t ? "border-b-2 border-zinc-900 font-medium" : "text-zinc-500"}`}
+            className={`px-4 py-2 text-sm transition-colors ${
+              tab === t
+                ? "border-b-2 border-zinc-900 font-medium text-zinc-900"
+                : "text-zinc-500 hover:text-zinc-700"
+            }`}
           >
             {TAB_LABELS[t]}
           </button>
@@ -227,153 +210,133 @@ export default function SettingsPage() {
       </div>
 
       {tab === "pessoas" && (
-        <div>
-          <form onSubmit={addPerson} className="mb-4 flex gap-2 max-w-sm">
-            <input
-              value={personName}
-              onChange={(e) => setPersonName(e.target.value)}
-              placeholder="Nome"
-              className="flex-1 rounded border px-3 py-2 text-sm"
-              required
-            />
-            <button type="submit" className="rounded bg-zinc-900 px-3 py-2 text-sm text-white">
-              Adicionar
-            </button>
+        <div className="flex flex-col gap-6">
+          <form onSubmit={addPerson} className="flex flex-col gap-4 max-w-sm">
+            <div className="flex flex-col gap-1">
+              <label className={labelClass}>Nome</label>
+              <input value={personName} onChange={(e) => setPersonName(e.target.value)} className={inputClass} required />
+            </div>
+            <button type="submit" className={btnPrimary}>Adicionar pessoa</button>
           </form>
-          {personError && <p className="mb-2 text-sm text-red-600">{personError}</p>}
-          <ul className="text-sm">
+          {personError && <p className="text-sm text-red-600">{personError}</p>}
+          <ul className="flex flex-col divide-y divide-zinc-100 border border-zinc-200 rounded-lg overflow-hidden">
             {people.map((p) => (
-              <li key={p.id} className="border-b py-1">
-                {p.name}
+              <li key={p.id} className="flex items-center justify-between px-4 py-3 bg-white hover:bg-zinc-50">
+                <span className="text-sm text-zinc-800">{p.name}</span>
+                <DeleteControls tab="pessoas" id={p.id} endpoint="/api/people" />
               </li>
             ))}
+            {people.length === 0 && <li className="px-4 py-3 text-sm text-zinc-400">Nenhuma pessoa cadastrada.</li>}
           </ul>
         </div>
       )}
 
       {tab === "cartoes" && (
-        <div>
-          <form onSubmit={addCard} className="mb-4 flex gap-2 max-w-md">
-            <input
-              value={cardName}
-              onChange={(e) => setCardName(e.target.value)}
-              placeholder="Nome do cartão"
-              className="flex-1 rounded border px-3 py-2 text-sm"
-              required
-            />
-            <input
-              value={cardLastFour}
-              onChange={(e) => setCardLastFour(e.target.value)}
-              placeholder="Últimos 4 dígitos (opcional)"
-              maxLength={4}
-              className="w-32 rounded border px-3 py-2 text-sm"
-            />
-            <input
-              value={cardBank}
-              onChange={(e) => setCardBank(e.target.value)}
-              placeholder="Banco"
-              className="w-32 rounded border px-3 py-2 text-sm"
-              required
-            />
-            <button type="submit" className="rounded bg-zinc-900 px-3 py-2 text-sm text-white">
-              Adicionar
-            </button>
+        <div className="flex flex-col gap-6">
+          <form onSubmit={addCard} className="flex flex-col gap-4 max-w-sm">
+            <div className="flex flex-col gap-1">
+              <label className={labelClass}>Nome do cartão</label>
+              <input value={cardName} onChange={(e) => setCardName(e.target.value)} className={inputClass} required />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex flex-col gap-1 flex-1">
+                <label className={labelClass}>Banco</label>
+                <input value={cardBank} onChange={(e) => setCardBank(e.target.value)} className={inputClass} required />
+              </div>
+              <div className="flex flex-col gap-1 w-36">
+                <label className={labelClass}>Últimos 4 dígitos (opcional)</label>
+                <input value={cardLastFour} onChange={(e) => setCardLastFour(e.target.value)} maxLength={4} className={inputClass} />
+              </div>
+            </div>
+            <button type="submit" className={btnPrimary}>Adicionar cartão</button>
           </form>
-          {cardError && <p className="mb-2 text-sm text-red-600">{cardError}</p>}
-          <ul className="text-sm">
+          {cardError && <p className="text-sm text-red-600">{cardError}</p>}
+          <ul className="flex flex-col divide-y divide-zinc-100 border border-zinc-200 rounded-lg overflow-hidden">
             {cards.map((c) => (
-              <li key={c.id} className="border-b py-1">
-                {c.name} {c.lastFourDigits && <>•••• {c.lastFourDigits}</>} ({c.bank})
+              <li key={c.id} className="flex items-center justify-between px-4 py-3 bg-white hover:bg-zinc-50">
+                <span className="text-sm text-zinc-800">
+                  {c.name} {c.lastFourDigits && <span className="text-zinc-400">•••• {c.lastFourDigits}</span>}{" "}
+                  <span className="text-zinc-400">({c.bank})</span>
+                </span>
+                <DeleteControls tab="cartoes" id={c.id} endpoint="/api/cards" />
               </li>
             ))}
+            {cards.length === 0 && <li className="px-4 py-3 text-sm text-zinc-400">Nenhum cartão cadastrado.</li>}
           </ul>
         </div>
       )}
 
       {tab === "contas" && (
-        <div>
-          <form onSubmit={addBankAccount} className="mb-4 flex gap-2 max-w-sm">
-            <input
-              value={accountName}
-              onChange={(e) => setAccountName(e.target.value)}
-              placeholder="Nome da conta"
-              className="flex-1 rounded border px-3 py-2 text-sm"
-              required
-            />
-            <input
-              value={accountBank}
-              onChange={(e) => setAccountBank(e.target.value)}
-              placeholder="Banco"
-              className="w-32 rounded border px-3 py-2 text-sm"
-              required
-            />
-            <button type="submit" className="rounded bg-zinc-900 px-3 py-2 text-sm text-white">
-              Adicionar
-            </button>
+        <div className="flex flex-col gap-6">
+          <form onSubmit={addBankAccount} className="flex flex-col gap-4 max-w-sm">
+            <div className="flex flex-col gap-1">
+              <label className={labelClass}>Nome da conta</label>
+              <input value={accountName} onChange={(e) => setAccountName(e.target.value)} className={inputClass} required />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className={labelClass}>Banco</label>
+              <input value={accountBank} onChange={(e) => setAccountBank(e.target.value)} className={inputClass} required />
+            </div>
+            <button type="submit" className={btnPrimary}>Adicionar conta</button>
           </form>
-          {accountError && <p className="mb-2 text-sm text-red-600">{accountError}</p>}
-          <ul className="text-sm">
+          {accountError && <p className="text-sm text-red-600">{accountError}</p>}
+          <ul className="flex flex-col divide-y divide-zinc-100 border border-zinc-200 rounded-lg overflow-hidden">
             {bankAccounts.map((a) => (
-              <li key={a.id} className="border-b py-1">
-                {a.name} ({a.bank})
+              <li key={a.id} className="flex items-center justify-between px-4 py-3 bg-white hover:bg-zinc-50">
+                <span className="text-sm text-zinc-800">{a.name} <span className="text-zinc-400">({a.bank})</span></span>
+                <DeleteControls tab="contas" id={a.id} endpoint="/api/bank-accounts" />
               </li>
             ))}
+            {bankAccounts.length === 0 && <li className="px-4 py-3 text-sm text-zinc-400">Nenhuma conta cadastrada.</li>}
           </ul>
         </div>
       )}
 
       {tab === "categorias" && (
-        <div>
-          <form onSubmit={addCategory} className="mb-4 flex gap-2 max-w-md">
-            <input
-              value={categoryName}
-              onChange={(e) => setCategoryName(e.target.value)}
-              placeholder="Nome da categoria"
-              className="flex-1 rounded border px-3 py-2 text-sm"
-              required
-            />
-            <input
-              value={categoryTag}
-              onChange={(e) => setCategoryTag(e.target.value)}
-              placeholder="Tag do banco (opcional)"
-              className="w-48 rounded border px-3 py-2 text-sm"
-            />
-            <button type="submit" className="rounded bg-zinc-900 px-3 py-2 text-sm text-white">
-              Adicionar
-            </button>
+        <div className="flex flex-col gap-6">
+          <form onSubmit={addCategory} className="flex flex-col gap-4 max-w-sm">
+            <div className="flex flex-col gap-1">
+              <label className={labelClass}>Nome da categoria</label>
+              <input value={categoryName} onChange={(e) => setCategoryName(e.target.value)} className={inputClass} required />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className={labelClass}>Tag do banco (opcional)</label>
+              <input value={categoryTag} onChange={(e) => setCategoryTag(e.target.value)} className={inputClass} />
+            </div>
+            <button type="submit" className={btnPrimary}>Adicionar categoria</button>
           </form>
-          {categoryError && <p className="mb-2 text-sm text-red-600">{categoryError}</p>}
-
-          <ul className="flex flex-col gap-4 text-sm">
+          {categoryError && <p className="text-sm text-red-600">{categoryError}</p>}
+          <ul className="flex flex-col gap-3">
             {categories.map((c) => (
-              <li key={c.id} className="rounded border p-3">
-                <p className="mb-2 font-medium">
-                  {c.name} {c.bankTagAlias && <span className="text-zinc-500">({c.bankTagAlias})</span>}
-                </p>
-                <p className="mb-2 text-xs text-zinc-500">Divisão por pessoa (% deve somar 100):</p>
-                <div className="flex flex-wrap gap-2">
+              <li key={c.id} className="rounded-lg border border-zinc-200 bg-white p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-zinc-800">
+                    {c.name} {c.bankTagAlias && <span className="text-zinc-400 font-normal">({c.bankTagAlias})</span>}
+                  </span>
+                  <DeleteControls tab="categorias" id={c.id} endpoint="/api/categories" />
+                </div>
+                <p className="mb-2 text-xs text-zinc-400">Divisão por pessoa (deve somar 100%):</p>
+                <div className="flex flex-wrap gap-3">
                   {people.map((p) => (
-                    <label key={p.id} className="flex items-center gap-1">
-                      <span className="text-xs">{p.name}</span>
+                    <label key={p.id} className="flex items-center gap-1.5">
+                      <span className="text-xs text-zinc-600">{p.name}</span>
                       <input
                         type="number"
-                        className="w-16 rounded border px-2 py-1 text-xs"
+                        className="w-16 rounded border border-zinc-300 px-2 py-1 text-xs focus:border-zinc-500 focus:outline-none"
                         value={splitDrafts[c.id]?.[p.id] ?? ""}
                         onChange={(e) => updateSplitDraft(c.id, p.id, e.target.value)}
                       />
-                      <span className="text-xs">%</span>
+                      <span className="text-xs text-zinc-400">%</span>
                     </label>
                   ))}
-                  <button
-                    onClick={() => saveSplits(c.id)}
-                    className="rounded bg-zinc-900 px-2 py-1 text-xs text-white"
-                  >
+                  <button onClick={() => saveSplits(c.id)} className="rounded border border-zinc-300 px-3 py-1 text-xs text-zinc-700 hover:bg-zinc-50 transition-colors">
                     Salvar splits
                   </button>
                 </div>
-                {splitMessage[c.id] && <p className="mt-1 text-xs text-zinc-600">{splitMessage[c.id]}</p>}
+                {splitMessage[c.id] && <p className="mt-2 text-xs text-zinc-500">{splitMessage[c.id]}</p>}
               </li>
             ))}
+            {categories.length === 0 && <li className="text-sm text-zinc-400">Nenhuma categoria cadastrada.</li>}
           </ul>
         </div>
       )}
