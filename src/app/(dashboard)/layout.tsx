@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { signOut } from "../../lib/auth";
 
 const NAV_ITEMS = [
   { href: "/transactions", label: "Transações" },
@@ -11,7 +12,7 @@ const NAV_ITEMS = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
-      <nav className="w-48 shrink-0 border-r bg-zinc-50 p-4">
+      <nav className="w-48 shrink-0 border-r bg-zinc-50 p-4 flex flex-col justify-between">
         <ul className="flex flex-col gap-2">
           {NAV_ITEMS.map((item) => (
             <li key={item.href}>
@@ -21,6 +22,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </li>
           ))}
         </ul>
+        <form
+          action={async () => {
+            "use server";
+            await signOut({ redirectTo: "/login" });
+          }}
+        >
+          <button type="submit" className="w-full rounded px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-200 text-left">
+            Sair
+          </button>
+        </form>
       </nav>
       <main className="flex-1">{children}</main>
     </div>

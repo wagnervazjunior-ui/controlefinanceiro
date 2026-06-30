@@ -4,6 +4,18 @@ import { db } from "../../../../../db/client";
 import { categorySplits } from "../../../../../db/schema";
 import { validateSplitsSumTo100 } from "../../../../../lib/category-split";
 
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const splits = await db
+    .select()
+    .from(categorySplits)
+    .where(eq(categorySplits.categoryId, Number(id)));
+  return NextResponse.json(splits);
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

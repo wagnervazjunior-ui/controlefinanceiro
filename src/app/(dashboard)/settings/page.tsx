@@ -28,6 +28,13 @@ interface Category {
 
 type Tab = "pessoas" | "cartoes" | "contas" | "categorias";
 
+const TAB_LABELS: Record<Tab, string> = {
+  pessoas: "Pessoas",
+  cartoes: "Cartões",
+  contas: "Contas",
+  categorias: "Categorias",
+};
+
 export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("pessoas");
 
@@ -69,7 +76,25 @@ export default function SettingsPage() {
       .catch((err) => console.error("Failed to load bank accounts:", err));
     fetch("/api/categories")
       .then((r) => r.json())
-      .then(setCategories)
+      .then(async (cats: Category[]) => {
+        setCategories(cats);
+        const drafts: Record<number, Record<number, string>> = {};
+        await Promise.all(
+          cats.map((c) =>
+            fetch(`/api/categories/${c.id}/splits`)
+              .then((r) => r.json())
+              .then((splits: { personId: number; percentage: string }[]) => {
+                if (splits.length > 0) {
+                  drafts[c.id] = Object.fromEntries(
+                    splits.map((s) => [s.personId, s.percentage])
+                  );
+                }
+              })
+              .catch(() => {})
+          )
+        );
+        setSplitDrafts(drafts);
+      })
       .catch((err) => console.error("Failed to load categories:", err));
   }, []);
 
@@ -194,9 +219,9 @@ export default function SettingsPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-3 py-2 text-sm capitalize ${tab === t ? "border-b-2 border-zinc-900 font-medium" : "text-zinc-500"}`}
+            className={`px-3 py-2 text-sm ${tab === t ? "border-b-2 border-zinc-900 font-medium" : "text-zinc-500"}`}
           >
-            {t}
+            {TAB_LABELS[t]}
           </button>
         ))}
       </div>
