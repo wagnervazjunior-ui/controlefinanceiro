@@ -1,8 +1,8 @@
 import { parseBrazilianAmount } from "../money";
 import type { ParsedTransaction } from "./types";
 
-const LINE_RE =
-  /^(\d{2})\/(\d{2})\/(\d{4})\s+(.+?)\s+(-?[\d.]+,\d{2})$/;
+// pdf-parse 1.x concatenates date+description+amount without spaces
+const LINE_RE = /^(\d{2})\/(\d{2})\/(\d{4})(.+?)(-?\d[\d.]*,\d{2})$/;
 
 export function parseExtratoText(
   text: string,

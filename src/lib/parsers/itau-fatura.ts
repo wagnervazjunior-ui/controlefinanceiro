@@ -6,9 +6,10 @@ const COMPRAS_SECTION_RE =
 const PRODUTOS_SECTION_RE =
   /Lançamentos: produtos e serviços([\s\S]*?)(?=\n\s*Lançamentos|$)/;
 
+// pdf-parse 1.x concatenates date+description+amount without spaces
 const TX_WITH_INSTALLMENT_RE =
-  /^(\d{2})\/(\d{2})\s+(.+?)\s+(\d{2})\/(\d{2})\s+(-?[\d.]+,\d{2})$/;
-const TX_PLAIN_RE = /^(\d{2})\/(\d{2})\s+(.+?)\s+(-?[\d.]+,\d{2})$/;
+  /^(\d{2})\/(\d{2})\s*(.+?)\s*(\d{2})\/(\d{2})\s*(-?[\d.]+,\d{2})$/;
+const TX_PLAIN_RE = /^(\d{2})\/(\d{2})\s*(.+?)\s*(-?[\d.]+,\d{2})$/;
 const TAG_LINE_RE = /^(\S+)\s+(.+)$/;
 
 function toIsoDate(day: string, month: string, referenceYear: number): string {
