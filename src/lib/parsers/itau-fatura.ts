@@ -2,9 +2,11 @@ import { parseBrazilianAmount } from "../money";
 import type { ParsedTransaction } from "./types";
 
 const COMPRAS_SECTION_RE =
-  /Lançamentos: compras e saques([\s\S]*?)(?=\n\s*Lançamentos: produtos e serviços|\n\s*Lançamentos internacionais|$)/;
+  /Lançamentos: compras e saques([\s\S]*?)(?=\n\s*Lançamentos(?::| internacionais)|$)/;
 const PRODUTOS_SECTION_RE =
-  /Lançamentos: produtos e serviços([\s\S]*?)(?=\n\s*Lançamentos|$)/;
+  /Lançamentos: produtos e serviços([\s\S]*?)(?=\n\s*Lançamentos(?::| internacionais)|$)/;
+const INTERNACIONAIS_SECTION_RE =
+  /Lançamentos internacionais([\s\S]*?)(?=\n\s*Lançamentos:|$)/;
 
 // pdf-parse 1.x concatenates date+description+amount without spaces
 const TX_WITH_INSTALLMENT_RE =
@@ -89,6 +91,11 @@ export function parseFaturaText(
   const produtosMatch = text.match(PRODUTOS_SECTION_RE);
   if (produtosMatch) {
     transactions.push(...parseSection(produtosMatch[1], referenceYear, referenceMonth, false));
+  }
+
+  const internacionaisMatch = text.match(INTERNACIONAIS_SECTION_RE);
+  if (internacionaisMatch) {
+    transactions.push(...parseSection(internacionaisMatch[1], referenceYear, referenceMonth, false));
   }
 
   return transactions;
