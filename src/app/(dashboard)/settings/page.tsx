@@ -229,6 +229,25 @@ export default function SettingsPage() {
     );
   }
 
+  function PurgeCardButton({ cardId }: { cardId: number }) {
+    const [confirming, setConfirming] = useState(false);
+    const [loading, setLoading] = useState(false);
+    if (confirming) return (
+      <span className="flex items-center gap-1">
+        <span className="text-xs text-zinc-500">Zerar tudo?</span>
+        <button disabled={loading} onClick={async () => {
+          setLoading(true);
+          await fetch(`/api/cards/${cardId}/purge`, { method: "DELETE" });
+          setConfirming(false);
+          setLoading(false);
+          setImports((prev) => prev.filter((i) => i.cardName !== cards.find((c) => c.id === cardId)?.name));
+        }} className={btnDestructive}>{loading ? "..." : "Confirmar"}</button>
+        <button onClick={() => setConfirming(false)} className={btnSecondary}>Cancelar</button>
+      </span>
+    );
+    return <button onClick={() => setConfirming(true)} className={btnSecondary}>Zerar lançamentos</button>;
+  }
+
   return (
     <div className="p-8 max-w-2xl">
       <div className="mb-6 flex gap-1 border-b border-zinc-200">
@@ -308,7 +327,10 @@ export default function SettingsPage() {
                   {c.name} {c.lastFourDigits && <span className="text-zinc-400">•••• {c.lastFourDigits}</span>}{" "}
                   <span className="text-zinc-400">({c.bank})</span>
                 </span>
-                <DeleteControls tab="cartoes" id={c.id} endpoint="/api/cards" />
+                <div className="flex items-center gap-2">
+                  <PurgeCardButton cardId={c.id} />
+                  <DeleteControls tab="cartoes" id={c.id} endpoint="/api/cards" />
+                </div>
               </li>
             ))}
             {cards.length === 0 && <li className="px-4 py-3 text-sm text-zinc-400">Nenhum cartão cadastrado.</li>}
