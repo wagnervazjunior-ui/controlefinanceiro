@@ -53,14 +53,16 @@ export default function ReportsPage() {
     fetch(`/api/reports/person-totals${qs}`).then((r) => r.json()).then(setPersonTotals);
   }, [selectedMonthId]);
 
-  const expenses = categoryTotals.filter((c) => Number(c.total) < 0);
+  // In credit-card faturas, purchases are stored as positive amounts, so an
+  // expense is a positive total (refunds/credits are negative).
+  const expenses = categoryTotals.filter((c) => Number(c.total) > 0);
   const chartData = expenses.map((c) => ({
     name: c.categoryName ?? "Sem categoria",
     value: Math.abs(Number(c.total)),
   }));
 
   const personBarData = personTotals
-    .filter((p) => p.total < 0)
+    .filter((p) => p.total > 0)
     .map((p) => ({ name: p.personName, value: Math.abs(p.total) }));
 
   const totalExpenses = expenses.reduce((sum, c) => sum + Math.abs(Number(c.total)), 0);
@@ -90,8 +92,8 @@ export default function ReportsPage() {
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">Por pessoa</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {personTotals
-              .filter((p) => p.total < 0)
-              .sort((a, b) => a.total - b.total)
+              .filter((p) => p.total > 0)
+              .sort((a, b) => b.total - a.total)
               .map((p) => (
                 <div key={p.personId} className="rounded-lg border border-zinc-200 bg-white p-4">
                   <div className="flex items-center gap-1.5 mb-1">
