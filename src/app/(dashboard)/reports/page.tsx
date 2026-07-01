@@ -64,10 +64,19 @@ export default function ReportsPage() {
   // In credit-card faturas, purchases are stored as positive amounts, so an
   // expense is a positive total (refunds/credits are negative).
   const expenses = categoryTotals.filter((c) => Number(c.total) > 0);
-  const chartData = expenses.map((c) => ({
-    name: c.categoryName ?? "Sem categoria",
-    value: Math.abs(Number(c.total)),
-  }));
+  // Group into the top slices + "Outros" so the pie stays readable with many
+  // categories.
+  const TOP_N = 7;
+  const sortedExpenses = [...expenses]
+    .map((c) => ({ name: c.categoryName ?? "Sem categoria", value: Math.abs(Number(c.total)) }))
+    .sort((a, b) => b.value - a.value);
+  const chartData =
+    sortedExpenses.length > TOP_N + 1
+      ? [
+          ...sortedExpenses.slice(0, TOP_N),
+          { name: "Outros", value: sortedExpenses.slice(TOP_N).reduce((s, c) => s + c.value, 0) },
+        ]
+      : sortedExpenses;
 
   const personBarData = personTotals
     .filter((p) => p.total > 0)
@@ -78,7 +87,7 @@ export default function ReportsPage() {
   return (
     <div className="p-8 max-w-4xl flex flex-col gap-8">
       {/* Month selector */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <label className="text-sm font-medium text-zinc-700">Período</label>
         <select
           value={selectedMonthId}
@@ -92,6 +101,12 @@ export default function ReportsPage() {
             </option>
           ))}
         </select>
+        <a
+          href={`/api/reports/export${selectedMonthId ? `?monthId=${selectedMonthId}` : ""}`}
+          className="ml-auto rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+        >
+          Exportar Excel
+        </a>
       </div>
 
       {/* Per-person cards */}
