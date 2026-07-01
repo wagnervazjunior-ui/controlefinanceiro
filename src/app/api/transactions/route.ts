@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
   const withSuggestions = rows.map((tx) => ({
     ...tx,
-    suggestedCategoryId: suggestCategoryId(tx.bankSuggestedTag, allCategories),
+    suggestedCategoryId: suggestCategoryId(tx.bankSuggestedTag, allCategories, tx.description),
   }));
 
   return NextResponse.json(withSuggestions);

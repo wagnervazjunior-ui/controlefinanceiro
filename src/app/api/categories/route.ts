@@ -10,7 +10,11 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const [created] = await db
     .insert(categories)
-    .values({ name: body.name, bankTagAlias: body.bankTagAlias ?? null })
+    .values({
+      name: body.name,
+      bankTagAlias: body.bankTagAlias ?? null,
+      excludeFromReports: !!body.excludeFromReports,
+    })
     .returning();
   return NextResponse.json(created, { status: 201 });
 }

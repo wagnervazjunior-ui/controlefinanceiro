@@ -19,6 +19,9 @@ export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
   bankTagAlias: text("bank_tag_alias"),
+  // Categories flagged here (e.g. "Pagamento de fatura", transfers) are kept
+  // out of expense reports to avoid double-counting.
+  excludeFromReports: boolean("exclude_from_reports").notNull().default(false),
 });
 
 export const categorySplits = pgTable("category_splits", {

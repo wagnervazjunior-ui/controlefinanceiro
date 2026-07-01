@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 interface Person { id: number; name: string; isMain: boolean; }
 interface Card { id: number; name: string; lastFourDigits: string | null; bank: string; }
 interface BankAccount { id: number; name: string; bank: string; }
-interface Category { id: number; name: string; bankTagAlias: string | null; }
+interface Category { id: number; name: string; bankTagAlias: string | null; excludeFromReports: boolean; }
 interface StatementImport {
   id: number; type: string; fileName: string; importedAt: string;
   cardName: string | null; accountName: string | null;
@@ -44,6 +44,7 @@ export default function SettingsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryName, setCategoryName] = useState("");
   const [categoryTag, setCategoryTag] = useState("");
+  const [categoryExclude, setCategoryExclude] = useState(false);
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [splitDrafts, setSplitDrafts] = useState<Record<number, Record<number, string>>>({});
   const [splitMessage, setSplitMessage] = useState<Record<number, string>>({});
@@ -152,15 +153,24 @@ export default function SettingsPage() {
       const response = await fetch("/api/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: categoryName, bankTagAlias: categoryTag || null }),
+        body: JSON.stringify({ name: categoryName, bankTagAlias: categoryTag || null, excludeFromReports: categoryExclude }),
       });
       const body = await response.json();
       if (!response.ok) { setCategoryError(body?.error ?? "Erro ao adicionar categoria."); return; }
       setCategories((prev) => [...prev, body]);
-      setCategoryName(""); setCategoryTag("");
+      setCategoryName(""); setCategoryTag(""); setCategoryExclude(false);
     } catch {
       setCategoryError("Erro ao adicionar categoria.");
     }
+  }
+
+  async function toggleExcludeFromReports(categoryId: number, value: boolean) {
+    setCategories((prev) => prev.map((c) => c.id === categoryId ? { ...c, excludeFromReports: value } : c));
+    await fetch(`/api/categories/${categoryId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ excludeFromReports: value }),
+    });
   }
 
   function updateSplitDraft(categoryId: number, personId: number, value: string) {
@@ -375,6 +385,10 @@ export default function SettingsPage() {
               <label className={labelClass}>Tag do banco (opcional)</label>
               <input value={categoryTag} onChange={(e) => setCategoryTag(e.target.value)} className={inputClass} />
             </div>
+            <label className="flex items-center gap-2 text-sm text-zinc-700 cursor-pointer select-none">
+              <input type="checkbox" checked={categoryExclude} onChange={(e) => setCategoryExclude(e.target.checked)} />
+              Excluir dos relatórios (ex: pagamento de fatura, transferências)
+            </label>
             <button type="submit" className={btnPrimary}>Adicionar categoria</button>
           </form>
           {categoryError && <p className="text-sm text-red-600">{categoryError}</p>}
@@ -384,9 +398,16 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-zinc-800">
                     {c.name} {c.bankTagAlias && <span className="text-zinc-400 font-normal">({c.bankTagAlias})</span>}
+                    {c.excludeFromReports && (
+                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">fora dos relatórios</span>
+                    )}
                   </span>
                   <DeleteControls tab="categorias" id={c.id} endpoint="/api/categories" />
                 </div>
+                <label className="mb-3 flex items-center gap-2 text-xs text-zinc-600 cursor-pointer select-none">
+                  <input type="checkbox" checked={c.excludeFromReports} onChange={(e) => toggleExcludeFromReports(c.id, e.target.checked)} />
+                  Excluir dos relatórios
+                </label>
                 <p className="mb-2 text-xs text-zinc-400">Divisão por pessoa (deve somar 100%):</p>
                 <div className="flex flex-wrap gap-3">
                   {people.map((p) => (
