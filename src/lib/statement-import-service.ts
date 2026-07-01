@@ -135,6 +135,14 @@ export async function importExtrato(input: {
   const keyCounters = new Map<string, number>();
 
   for (const tx of parsed) {
+    // Only debits (money out) are expenses. Extrato credits (positive: PIX
+    // received, CDB resgates, income) are skipped so they don't clutter
+    // categorization or offset expenses.
+    if (tx.amount >= 0) {
+      skipped++;
+      continue;
+    }
+
     const baseKey = buildDedupeKey({
       date: tx.date,
       description: tx.description,
