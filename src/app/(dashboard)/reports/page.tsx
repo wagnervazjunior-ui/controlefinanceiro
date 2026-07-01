@@ -43,7 +43,15 @@ export default function ReportsPage() {
       .then((data: Month[]) => {
         const sorted = [...data].sort((a, b) => b.year - a.year || b.month - a.month);
         setMonths(sorted);
-        if (sorted.length > 0) setSelectedMonthId(String(sorted[0].id));
+        if (sorted.length === 0) return;
+        // Default to the previous calendar month (e.g. in July, close June),
+        // falling back to the most recent month with data.
+        const now = new Date();
+        const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const prevMonth = sorted.find(
+          (m) => m.year === prev.getFullYear() && m.month === prev.getMonth() + 1
+        );
+        setSelectedMonthId(String((prevMonth ?? sorted[0]).id));
       });
   }, []);
 
