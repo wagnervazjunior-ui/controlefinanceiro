@@ -18,7 +18,12 @@ export async function GET(request: NextRequest) {
   const mainPerson = allPeople.find((p) => p.isMain);
 
   const totals = computePersonTotals(
-    txRows.map((t) => ({ categoryId: t.categoryId, amount: Number(t.amount) })),
+    // Normalize sign so an expense is always positive: extrato debits are
+    // negative, so flip them; card fatura purchases are already positive.
+    txRows.map((t) => ({
+      categoryId: t.categoryId,
+      amount: t.bankAccountId != null ? -Number(t.amount) : Number(t.amount),
+    })),
     splits.map((s) => ({ categoryId: s.categoryId, personId: s.personId, percentage: Number(s.percentage) })),
     mainPerson?.id
   );
