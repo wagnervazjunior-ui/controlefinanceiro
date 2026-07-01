@@ -49,6 +49,9 @@ export default function SettingsPage() {
   const [splitMessage, setSplitMessage] = useState<Record<number, string>>({});
 
   const [imports, setImports] = useState<StatementImport[]>([]);
+  const [selectedImports, setSelectedImports] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
 
   // confirmDelete[tab] = id being confirmed, or null
   const [confirmDelete, setConfirmDelete] = useState<Record<Tab, number | null>>({
@@ -390,7 +393,48 @@ export default function SettingsPage() {
 
       {tab === "importacoes" && (
         <div className="flex flex-col gap-3">
-          <p className="text-xs text-zinc-500">Excluir uma importação remove todos os lançamentos associados.</p>
+          {imports.length > 0 && (
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-sm text-zinc-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={selectedImports.size === imports.length}
+                  onChange={(e) => setSelectedImports(e.target.checked ? new Set(imports.map((i) => i.id)) : new Set())}
+                />
+                Selecionar todos ({imports.length})
+              </label>
+              {selectedImports.size > 0 && (
+                confirmBulkDelete ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-zinc-500">Excluir {selectedImports.size} importação(ões) e todos os lançamentos?</span>
+                    <button
+                      disabled={bulkDeleting}
+                      onClick={async () => {
+                        setBulkDeleting(true);
+                        await fetch("/api/statement-imports/bulk-delete", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ ids: Array.from(selectedImports) }),
+                        });
+                        setImports((prev) => prev.filter((i) => !selectedImports.has(i.id)));
+                        setSelectedImports(new Set());
+                        setConfirmBulkDelete(false);
+                        setBulkDeleting(false);
+                      }}
+                      className={btnDestructive}
+                    >
+                      {bulkDeleting ? "Excluindo..." : "Confirmar"}
+                    </button>
+                    <button onClick={() => setConfirmBulkDelete(false)} className={btnSecondary}>Cancelar</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmBulkDelete(true)} className={btnDestructive}>
+                    Excluir selecionados ({selectedImports.size})
+                  </button>
+                )
+              )}
+            </div>
+          )}
           {imports.length === 0 && <p className="text-sm text-zinc-400">Nenhuma importação encontrada.</p>}
           {imports.map((imp) => {
             const MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
@@ -398,8 +442,17 @@ export default function SettingsPage() {
             const period = imp.year && imp.month ? `${MONTHS[imp.month - 1]}/${imp.year}` : "";
             const label = `${imp.type === "fatura" ? "Fatura" : "Extrato"} · ${source}${period ? ` · ${period}` : ""} · ${imp.txCount} lançamento(s)`;
             return (
-              <div key={imp.id} className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3">
-                <div>
+              <div key={imp.id} className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors ${selectedImports.has(imp.id) ? "border-zinc-400 bg-zinc-50" : "border-zinc-200 bg-white"}`}>
+                <input
+                  type="checkbox"
+                  checked={selectedImports.has(imp.id)}
+                  onChange={(e) => {
+                    const next = new Set(selectedImports);
+                    e.target.checked ? next.add(imp.id) : next.delete(imp.id);
+                    setSelectedImports(next);
+                  }}
+                />
+                <div className="flex-1 min-w-0">
                   <p className="text-sm text-zinc-800">{label}</p>
                   <p className="text-xs text-zinc-400">{imp.fileName} · importado em {new Date(imp.importedAt).toLocaleDateString("pt-BR")}</p>
                 </div>
