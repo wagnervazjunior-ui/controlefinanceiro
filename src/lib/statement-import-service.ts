@@ -22,10 +22,11 @@ export async function importFatura(input: {
   referenceMonth: number;
   cardId: number;
   fileName: string;
-}): Promise<{ created: number; skipped: number }> {
+}): Promise<{ created: number; skipped: number; skippedItems: { date: string; description: string; amount: number }[] }> {
   const parsed = parseFaturaText(input.text, input.referenceYear, input.referenceMonth);
   let created = 0;
   let skipped = 0;
+  const skippedItems: { date: string; description: string; amount: number }[] = [];
 
   // All transactions in a fatura belong to the fatura's reference month,
   // regardless of the actual transaction date (e.g. a May fatura closing
@@ -57,6 +58,7 @@ export async function importFatura(input: {
       .where(eq(transactions.dedupeKey, dedupeKey));
     if (existing[0]) {
       skipped++;
+      skippedItems.push({ date: tx.date, description: tx.description, amount: tx.amount });
       continue;
     }
 
@@ -105,7 +107,7 @@ export async function importFatura(input: {
     created++;
   }
 
-  return { created, skipped };
+  return { created, skipped, skippedItems };
 }
 
 export async function importExtrato(input: {
