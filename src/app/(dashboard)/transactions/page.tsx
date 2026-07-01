@@ -11,6 +11,8 @@ interface Transaction {
   suggestedCategoryId: number | null;
   cardId: number | null;
   bankAccountId: number | null;
+  installmentCurrent: number | null;
+  installmentTotal: number | null;
 }
 
 interface Category {
@@ -146,7 +148,14 @@ export default function TransactionsPage() {
                 <tr key={tx.id} className="hover:bg-zinc-50 transition-colors">
                   <td className="px-4 py-3 text-zinc-500 whitespace-nowrap">{tx.date}</td>
                   <td className="px-4 py-3 text-zinc-500 whitespace-nowrap text-xs">{sourceName(tx)}</td>
-                  <td className="px-4 py-3 text-zinc-800">{tx.description}</td>
+                  <td className="px-4 py-3 text-zinc-800">
+                    {tx.description}
+                    {tx.installmentCurrent && tx.installmentTotal && (
+                      <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-medium text-zinc-500">
+                        {tx.installmentCurrent}/{tx.installmentTotal}
+                      </span>
+                    )}
+                  </td>
                   <td className={`px-4 py-3 text-right font-mono whitespace-nowrap ${Number(tx.amount) < 0 ? "text-red-600" : "text-zinc-800"}`}>
                     {Number(tx.amount) < 0 ? `-R$ ${Math.abs(Number(tx.amount)).toFixed(2).replace(".", ",")}` : `R$ ${Number(tx.amount).toFixed(2).replace(".", ",")}`}
                   </td>
