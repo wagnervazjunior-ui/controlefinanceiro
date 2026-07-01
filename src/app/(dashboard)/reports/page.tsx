@@ -121,12 +121,12 @@ export default function ReportsPage() {
           <div className="rounded-lg border border-zinc-200 bg-white p-4">
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
-                <Pie data={chartData} dataKey="value" nameKey="name" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                <Pie data={chartData} dataKey="value" nameKey="name" outerRadius={100} label={false}>
                   {chartData.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v: number) => fmt(v)} />
+                <Tooltip formatter={(v) => fmt(Number(v))} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -143,7 +143,7 @@ export default function ReportsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: number) => fmt(v)} />
+                <Tooltip formatter={(v) => fmt(Number(v))} />
                 <Bar dataKey="value" fill="#18181b" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
