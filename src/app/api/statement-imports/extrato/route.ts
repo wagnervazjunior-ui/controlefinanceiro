@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const text = await extractPdfText(buffer);
     const result = await importExtrato({ text, referenceYear, referenceMonth, bankAccountId, fileName: file.name });
 
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, _debug: result.created === 0 ? text.slice(0, 3000) : undefined });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });
