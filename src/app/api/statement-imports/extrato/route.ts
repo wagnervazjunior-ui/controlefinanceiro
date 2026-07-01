@@ -7,22 +7,27 @@ import { importExtrato } from "../../../../lib/statement-import-service";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const formData = await request.formData();
-  const file = formData.get("file") as File;
-  const bankAccountId = Number(formData.get("bankAccountId"));
-  const referenceYear = Number(formData.get("referenceYear"));
-  const referenceMonth = Number(formData.get("referenceMonth"));
+  try {
+    const formData = await request.formData();
+    const file = formData.get("file") as File;
+    const bankAccountId = Number(formData.get("bankAccountId"));
+    const referenceYear = Number(formData.get("referenceYear"));
+    const referenceMonth = Number(formData.get("referenceMonth"));
 
-  if (!file || !bankAccountId || !referenceYear || !referenceMonth) {
-    return NextResponse.json(
-      { error: "file, bankAccountId, referenceYear, and referenceMonth are required" },
-      { status: 400 }
-    );
+    if (!file || !bankAccountId || !referenceYear || !referenceMonth) {
+      return NextResponse.json(
+        { error: "file, bankAccountId, referenceYear, and referenceMonth are required" },
+        { status: 400 }
+      );
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const text = await extractPdfText(buffer);
+    const result = await importExtrato({ text, referenceYear, referenceMonth, bankAccountId, fileName: file.name });
+
+    return NextResponse.json(result);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const text = await extractPdfText(buffer);
-  const result = await importExtrato({ text, referenceYear, referenceMonth, bankAccountId, fileName: file.name });
-
-  return NextResponse.json(result);
 }

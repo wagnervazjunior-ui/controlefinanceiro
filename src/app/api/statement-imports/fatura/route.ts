@@ -7,18 +7,23 @@ import { importFatura } from "../../../../lib/statement-import-service";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const formData = await request.formData();
-  const file = formData.get("file") as File;
-  const cardId = Number(formData.get("cardId"));
-  const referenceYear = Number(formData.get("referenceYear"));
+  try {
+    const formData = await request.formData();
+    const file = formData.get("file") as File;
+    const cardId = Number(formData.get("cardId"));
+    const referenceYear = Number(formData.get("referenceYear"));
 
-  if (!file || !cardId || !referenceYear) {
-    return NextResponse.json({ error: "file, cardId, and referenceYear are required" }, { status: 400 });
+    if (!file || !cardId || !referenceYear) {
+      return NextResponse.json({ error: "file, cardId, and referenceYear are required" }, { status: 400 });
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const text = await extractPdfText(buffer);
+    const result = await importFatura({ text, referenceYear, cardId, fileName: file.name });
+
+    return NextResponse.json(result);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const text = await extractPdfText(buffer);
-  const result = await importFatura({ text, referenceYear, cardId, fileName: file.name });
-
-  return NextResponse.json(result);
 }
