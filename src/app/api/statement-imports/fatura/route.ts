@@ -12,14 +12,15 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File;
     const cardId = Number(formData.get("cardId"));
     const referenceYear = Number(formData.get("referenceYear"));
+    const referenceMonth = Number(formData.get("referenceMonth"));
 
-    if (!file || !cardId || !referenceYear) {
-      return NextResponse.json({ error: "file, cardId, and referenceYear are required" }, { status: 400 });
+    if (!file || !cardId || !referenceYear || !referenceMonth) {
+      return NextResponse.json({ error: "file, cardId, referenceYear, and referenceMonth are required" }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const text = await extractPdfText(buffer);
-    const result = await importFatura({ text, referenceYear, cardId, fileName: file.name });
+    const result = await importFatura({ text, referenceYear, referenceMonth, cardId, fileName: file.name });
 
     return NextResponse.json({ ...result, _debug: result.created === 0 ? text.slice(0, 3000) : undefined });
   } catch (err) {

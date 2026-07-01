@@ -9,7 +9,7 @@ const fixture = readFileSync(
 );
 
 describe("parseFaturaText", () => {
-  const result = parseFaturaText(fixture, 2026);
+  const result = parseFaturaText(fixture, 2026, 5);
 
   it("parses a transaction with installment and bank tag", () => {
     const tx = result.find((t) => t.description.includes("NCL *60319496"));

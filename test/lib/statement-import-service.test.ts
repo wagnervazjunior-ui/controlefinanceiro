@@ -31,6 +31,7 @@ describe("importFatura", () => {
     const firstImport = await importFatura({
       text: faturaMay,
       referenceYear: 2026,
+      referenceMonth: 5,
       cardId: card.id,
       fileName: "fatura-maio.pdf",
     });
@@ -44,6 +45,7 @@ describe("importFatura", () => {
     const secondImport = await importFatura({
       text: faturaJune,
       referenceYear: 2026,
+      referenceMonth: 5,
       cardId: card.id,
       fileName: "fatura-junho.pdf",
     });
@@ -58,8 +60,8 @@ describe("importFatura", () => {
     const [card] = await db.insert(cards).values({ name: "Itau Black", lastFourDigits: "3269", bank: "Itau" }).returning();
     const fatura = `Lançamentos: compras e saques\nWAGNER A V JUNIOR\nDATA ESTABELECIMENTO VALOR EM R$\n03/05 APPLE.COM/BILL.SAO PAUL 30,90\noutros SAO PAULO`;
 
-    await importFatura({ text: fatura, referenceYear: 2026, cardId: card.id, fileName: "a.pdf" });
-    const second = await importFatura({ text: fatura, referenceYear: 2026, cardId: card.id, fileName: "b.pdf" });
+    await importFatura({ text: fatura, referenceYear: 2026, referenceMonth: 5, cardId: card.id, fileName: "a.pdf" });
+    const second = await importFatura({ text: fatura, referenceYear: 2026, referenceMonth: 5, cardId: card.id, fileName: "b.pdf" });
 
     expect(second.created).toBe(0);
     expect(second.skipped).toBe(1);

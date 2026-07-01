@@ -8,7 +8,7 @@ export interface ParsedTransaction {
 }
 
 export interface BankParser {
-  parseFaturaText(text: string, referenceYear: number): ParsedTransaction[];
+  parseFaturaText(text: string, referenceYear: number, referenceMonth: number): ParsedTransaction[];
   parseExtratoText(
     text: string,
     referenceYear: number,

@@ -19,10 +19,11 @@ async function getOrCreateMonth(year: number, month: number) {
 export async function importFatura(input: {
   text: string;
   referenceYear: number;
+  referenceMonth: number;
   cardId: number;
   fileName: string;
 }): Promise<{ created: number; skipped: number }> {
-  const parsed = parseFaturaText(input.text, input.referenceYear);
+  const parsed = parseFaturaText(input.text, input.referenceYear, input.referenceMonth);
   let created = 0;
   let skipped = 0;
 

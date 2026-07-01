@@ -95,6 +95,7 @@ export default function ImportPage() {
   const [faturaFile, setFaturaFile] = useState<File | null>(null);
   const [faturaCardId, setFaturaCardId] = useState("");
   const [faturaYear, setFaturaYear] = useState(new Date().getFullYear().toString());
+  const [faturaMonth, setFaturaMonth] = useState((new Date().getMonth() + 1).toString());
   const [faturaResult, setFaturaResult] = useState<ImportResult | null>(null);
   const [faturaError, setFaturaError] = useState<string | null>(null);
   const [faturaSubmitting, setFaturaSubmitting] = useState(false);
@@ -123,6 +124,7 @@ export default function ImportPage() {
       formData.append("file", faturaFile);
       formData.append("cardId", faturaCardId);
       formData.append("referenceYear", faturaYear);
+      formData.append("referenceMonth", faturaMonth);
       const response = await fetch("/api/statement-imports/fatura", { method: "POST", body: formData });
       const body = await response.json();
       if (!response.ok) { setFaturaError(body?.error ?? "Erro ao importar fatura."); return; }
@@ -177,9 +179,15 @@ export default function ImportPage() {
               ))}
             </select>
           </div>
-          <div className="flex flex-col gap-1">
-            <label className={labelClass}>Ano de referência</label>
-            <input type="number" value={faturaYear} onChange={(e) => setFaturaYear(e.target.value)} required className={inputClass} />
+          <div className="flex gap-4">
+            <div className="flex flex-col gap-1 flex-1">
+              <label className={labelClass}>Ano de fechamento</label>
+              <input type="number" value={faturaYear} onChange={(e) => setFaturaYear(e.target.value)} required className={inputClass} />
+            </div>
+            <div className="flex flex-col gap-1 flex-1">
+              <label className={labelClass}>Mês de fechamento (1–12)</label>
+              <input type="number" min={1} max={12} value={faturaMonth} onChange={(e) => setFaturaMonth(e.target.value)} required className={inputClass} />
+            </div>
           </div>
           <button type="submit" disabled={faturaSubmitting} className={btnPrimary}>
             {faturaSubmitting ? "Importando..." : "Importar fatura"}

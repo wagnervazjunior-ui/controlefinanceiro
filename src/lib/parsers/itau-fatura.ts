@@ -12,16 +12,18 @@ const TX_WITH_INSTALLMENT_RE =
 const TX_PLAIN_RE = /^(\d{2})\/(\d{2})\s*(.+?)\s*(-?[\d.]+,\d{2})$/;
 const TAG_LINE_RE = /^(\S+)\s+(.+)$/;
 
-function toIsoDate(day: string, month: string, referenceYear: number): string {
-  // Fatura months wrap a calendar year; a month "ahead" of the statement
-  // month belongs to the previous year (e.g. Nov/Dec entries on a May-closing
-  // fatura belong to the prior year). Caller passes the fatura's closing year.
-  return `${referenceYear}-${month}-${day}`;
+function toIsoDate(day: string, month: string, referenceYear: number, referenceMonth: number): string {
+  const txMonth = Number(month);
+  // If transaction month is later in the year than the closing month, it belongs
+  // to the previous year (e.g. Dec transactions on a Jan fatura → year - 1)
+  const year = txMonth > referenceMonth ? referenceYear - 1 : referenceYear;
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 }
 
 function parseSection(
   body: string,
   referenceYear: number,
+  referenceMonth: number,
   expectTagLine: boolean
 ): ParsedTransaction[] {
   const lines = body
@@ -60,7 +62,7 @@ function parseSection(
     }
 
     results.push({
-      date: toIsoDate(day, month, referenceYear),
+      date: toIsoDate(day, month, referenceYear, referenceMonth),
       description: description.trim(),
       amount: parseBrazilianAmount(amountRaw),
       installmentCurrent,
@@ -74,18 +76,19 @@ function parseSection(
 
 export function parseFaturaText(
   text: string,
-  referenceYear: number
+  referenceYear: number,
+  referenceMonth: number
 ): ParsedTransaction[] {
   const transactions: ParsedTransaction[] = [];
 
   const comprasMatch = text.match(COMPRAS_SECTION_RE);
   if (comprasMatch) {
-    transactions.push(...parseSection(comprasMatch[1], referenceYear, true));
+    transactions.push(...parseSection(comprasMatch[1], referenceYear, referenceMonth, true));
   }
 
   const produtosMatch = text.match(PRODUTOS_SECTION_RE);
   if (produtosMatch) {
-    transactions.push(...parseSection(produtosMatch[1], referenceYear, false));
+    transactions.push(...parseSection(produtosMatch[1], referenceYear, referenceMonth, false));
   }
 
   return transactions;
