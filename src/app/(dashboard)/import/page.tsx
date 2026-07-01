@@ -19,6 +19,9 @@ interface BankAccount {
 interface ImportResult {
   created: number;
   skipped: number;
+  skippedItems?: { date: string; description: string; amount: number }[];
+  _parsedCount?: number;
+  _parsedTotal?: string;
 }
 
 function FileDropzone({
@@ -82,6 +85,10 @@ function FileDropzone({
       )}
     </div>
   );
+}
+
+function fmt(v: number) {
+  return `R$ ${Math.abs(v).toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
 }
 
 const inputClass = "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none w-full";
@@ -195,10 +202,40 @@ export default function ImportPage() {
         </form>
         {faturaError && <p className="mt-3 rounded-md bg-red-50 border border-red-100 px-3 py-2 text-sm text-red-600">{faturaError}</p>}
         {faturaResult && (
-          <p className="mt-3 rounded-md bg-green-50 border border-green-100 px-3 py-2 text-sm text-green-700">
-            {faturaResult.created} lançamento(s) criado(s), {faturaResult.skipped} ignorado(s).{" "}
-            <Link href="/transactions" className="font-medium underline">Ir para categorização →</Link>
-          </p>
+          <div className="mt-3 flex flex-col gap-2">
+            <p className="rounded-md bg-green-50 border border-green-100 px-3 py-2 text-sm text-green-700">
+              {faturaResult.created} lançamento(s) criado(s), {faturaResult.skipped} ignorado(s).{" "}
+              {faturaResult._parsedCount !== undefined && (
+                <span>Total parseado: {faturaResult._parsedTotal ? `R$ ${faturaResult._parsedTotal.replace(".", ",")}` : "—"} ({faturaResult._parsedCount} itens). </span>
+              )}
+              <Link href="/transactions" className="font-medium underline">Ir para categorização →</Link>
+            </p>
+            {faturaResult.skippedItems && faturaResult.skippedItems.length > 0 && (
+              <details className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                <summary className="cursor-pointer text-sm font-medium text-amber-700">
+                  {faturaResult.skippedItems.length} ignorado(s) — já existem no banco (clique para ver)
+                </summary>
+                <table className="mt-2 w-full text-xs text-amber-800">
+                  <thead>
+                    <tr className="border-b border-amber-200">
+                      <th className="pb-1 text-left">Data</th>
+                      <th className="pb-1 text-left">Descrição</th>
+                      <th className="pb-1 text-right">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {faturaResult.skippedItems.map((item, i) => (
+                      <tr key={i} className="border-b border-amber-100 last:border-0">
+                        <td className="py-1 pr-3 whitespace-nowrap">{item.date}</td>
+                        <td className="py-1 pr-3">{item.description}</td>
+                        <td className="py-1 text-right whitespace-nowrap">{fmt(item.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </details>
+            )}
+          </div>
         )}
       </section>
 
