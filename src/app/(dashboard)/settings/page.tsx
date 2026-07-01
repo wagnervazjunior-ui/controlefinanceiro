@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-interface Person { id: number; name: string; }
+interface Person { id: number; name: string; isMain: boolean; }
 interface Card { id: number; name: string; lastFourDigits: string | null; bank: string; }
 interface BankAccount { id: number; name: string; bank: string; }
 interface Category { id: number; name: string; bankTagAlias: string | null; }
@@ -74,6 +74,11 @@ export default function SettingsPage() {
       })
       .catch(console.error);
   }, []);
+
+  async function setMainPerson(id: number) {
+    await fetch(`/api/people/${id}/set-main`, { method: "POST" });
+    setPeople((prev) => prev.map((p) => ({ ...p, isMain: p.id === id })));
+  }
 
   async function addPerson(e: React.FormEvent) {
     e.preventDefault();
@@ -243,8 +248,20 @@ export default function SettingsPage() {
           <ul className="flex flex-col divide-y divide-zinc-100 border border-zinc-200 rounded-lg overflow-hidden">
             {people.map((p) => (
               <li key={p.id} className="flex items-center justify-between px-4 py-3 bg-white hover:bg-zinc-50">
-                <span className="text-sm text-zinc-800">{p.name}</span>
-                <DeleteControls tab="pessoas" id={p.id} endpoint="/api/people" />
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-zinc-800">{p.name}</span>
+                  {p.isMain && (
+                    <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-xs font-medium text-white">Principal</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {!p.isMain && (
+                    <button onClick={() => setMainPerson(p.id)} className={btnSecondary}>
+                      Definir como principal
+                    </button>
+                  )}
+                  <DeleteControls tab="pessoas" id={p.id} endpoint="/api/people" />
+                </div>
               </li>
             ))}
             {people.length === 0 && <li className="px-4 py-3 text-sm text-zinc-400">Nenhuma pessoa cadastrada.</li>}

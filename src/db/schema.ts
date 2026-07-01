@@ -1,5 +1,5 @@
 import {
-  pgTable, serial, text, integer, numeric, date, varchar, timestamp, uniqueIndex,
+  pgTable, serial, text, integer, numeric, date, varchar, timestamp, uniqueIndex, boolean,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -12,6 +12,7 @@ export const users = pgTable("users", {
 export const people = pgTable("people", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  isMain: boolean("is_main").notNull().default(false),
 });
 
 export const categories = pgTable("categories", {
