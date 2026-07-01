@@ -130,13 +130,21 @@ export async function importExtrato(input: {
   let created = 0;
   let skipped = 0;
 
+  // Track duplicate base keys within this batch so identical statement lines
+  // (same date/description/amount) each get a unique key instead of colliding.
+  const keyCounters = new Map<string, number>();
+
   for (const tx of parsed) {
-    const dedupeKey = buildDedupeKey({
+    const baseKey = buildDedupeKey({
       date: tx.date,
       description: tx.description,
       amount: tx.amount,
       source: `account:${input.bankAccountId}`,
     });
+
+    const occurrence = (keyCounters.get(baseKey) ?? 0) + 1;
+    keyCounters.set(baseKey, occurrence);
+    const dedupeKey = occurrence === 1 ? baseKey : `${baseKey}#${occurrence}`;
 
     const existing = await db
       .select()
