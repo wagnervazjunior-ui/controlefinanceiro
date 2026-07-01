@@ -2,9 +2,9 @@ import { parseBrazilianAmount } from "../money";
 import type { ParsedTransaction } from "./types";
 
 const COMPRAS_SECTION_RE =
-  /Lançamentos: compras e saques([\s\S]*?)(?=\n\s*Lançamentos(?::| internacionais)|$)/;
+  /Lançamentos: compras e saques([\s\S]*?)(?=\n\s*Lançamentos: produtos e serviços|\n\s*Lançamentos internacionais|$)/;
 const PRODUTOS_SECTION_RE =
-  /Lançamentos: produtos e serviços([\s\S]*?)(?=\n\s*Lançamentos(?::| internacionais)|$)/;
+  /Lançamentos: produtos e serviços([\s\S]*?)(?=\n\s*Lançamentos|$)/;
 const INTERNACIONAIS_SECTION_RE =
   /Lançamentos internacionais([\s\S]*?)(?=\n\s*Lançamentos:|$)/;
 

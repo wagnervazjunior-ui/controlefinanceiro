@@ -93,8 +93,50 @@ export default function TransactionsPage() {
 
   const uncategorizedCount = allTransactions.filter((tx) => tx.categoryId === null).length;
 
+  const filteredBySource = allTransactions.filter((tx) => {
+    if (sourceFilter === "all") return true;
+    if (sourceFilter.startsWith("card:")) return tx.cardId === Number(sourceFilter.slice(5));
+    if (sourceFilter.startsWith("account:")) return tx.bankAccountId === Number(sourceFilter.slice(8));
+    return true;
+  });
+
+  const sourceTotal = filteredBySource.reduce((sum, tx) => sum + Number(tx.amount), 0);
+  const sourceName2 = (() => {
+    if (sourceFilter.startsWith("card:")) {
+      const card = cards.find((c) => c.id === Number(sourceFilter.slice(5)));
+      return card ? card.name : "Cartão";
+    }
+    if (sourceFilter.startsWith("account:")) {
+      const acc = bankAccounts.find((a) => a.id === Number(sourceFilter.slice(8)));
+      return acc ? acc.name : "Conta";
+    }
+    return null;
+  })();
+
+  const fmt = (v: number) =>
+    `R$ ${Math.abs(v).toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
+
   return (
     <div className="p-8">
+      {sourceName2 && (
+        <div className="mb-6 flex gap-4">
+          <div className="rounded-lg border border-zinc-200 bg-white px-5 py-4 flex-1 max-w-xs">
+            <p className="text-xs text-zinc-500 uppercase tracking-wide font-semibold mb-1">{sourceName2}</p>
+            <p className={`text-2xl font-bold ${sourceTotal < 0 ? "text-red-600" : "text-zinc-800"}`}>
+              {sourceTotal < 0 ? `-${fmt(sourceTotal)}` : fmt(sourceTotal)}
+            </p>
+            <p className="text-xs text-zinc-400 mt-1">{filteredBySource.length} lançamentos</p>
+          </div>
+          <div className="rounded-lg border border-zinc-200 bg-white px-5 py-4 flex-1 max-w-xs">
+            <p className="text-xs text-zinc-500 uppercase tracking-wide font-semibold mb-1">Categorizados</p>
+            <p className="text-2xl font-bold text-zinc-800">
+              {filteredBySource.filter((tx) => tx.categoryId !== null).length}
+              <span className="text-sm font-normal text-zinc-400 ml-1">/ {filteredBySource.length}</span>
+            </p>
+            <p className="text-xs text-zinc-400 mt-1">{filteredBySource.filter((tx) => tx.categoryId === null).length} sem categoria</p>
+          </div>
+        </div>
+      )}
       <div className="mb-6 flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-white p-1">
           <button
