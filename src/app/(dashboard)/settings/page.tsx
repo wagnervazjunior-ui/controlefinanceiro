@@ -6,10 +6,15 @@ interface Person { id: number; name: string; isMain: boolean; }
 interface Card { id: number; name: string; lastFourDigits: string | null; bank: string; }
 interface BankAccount { id: number; name: string; bank: string; }
 interface Category { id: number; name: string; bankTagAlias: string | null; }
+interface StatementImport {
+  id: number; type: string; fileName: string; importedAt: string;
+  cardName: string | null; accountName: string | null;
+  year: number | null; month: number | null; txCount: number;
+}
 
-type Tab = "pessoas" | "cartoes" | "contas" | "categorias";
+type Tab = "pessoas" | "cartoes" | "contas" | "categorias" | "importacoes";
 const TAB_LABELS: Record<Tab, string> = {
-  pessoas: "Pessoas", cartoes: "Cartões", contas: "Contas", categorias: "Categorias",
+  pessoas: "Pessoas", cartoes: "Cartões", contas: "Contas", categorias: "Categorias", importacoes: "Importações",
 };
 
 const inputClass = "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none";
@@ -43,9 +48,11 @@ export default function SettingsPage() {
   const [splitDrafts, setSplitDrafts] = useState<Record<number, Record<number, string>>>({});
   const [splitMessage, setSplitMessage] = useState<Record<number, string>>({});
 
+  const [imports, setImports] = useState<StatementImport[]>([]);
+
   // confirmDelete[tab] = id being confirmed, or null
   const [confirmDelete, setConfirmDelete] = useState<Record<Tab, number | null>>({
-    pessoas: null, cartoes: null, contas: null, categorias: null,
+    pessoas: null, cartoes: null, contas: null, categorias: null, importacoes: null,
   });
   const [deleteError, setDeleteError] = useState<Record<number, string>>({});
 
@@ -53,6 +60,7 @@ export default function SettingsPage() {
     fetch("/api/people").then((r) => r.json()).then(setPeople).catch(console.error);
     fetch("/api/cards").then((r) => r.json()).then(setCards).catch(console.error);
     fetch("/api/bank-accounts").then((r) => r.json()).then(setBankAccounts).catch(console.error);
+    fetch("/api/statement-imports").then((r) => r.json()).then(setImports).catch(console.error);
     fetch("/api/categories")
       .then((r) => r.json())
       .then(async (cats: Category[]) => {
@@ -181,6 +189,7 @@ export default function SettingsPage() {
         if (tab === "cartoes") setCards((prev) => prev.filter((x) => x.id !== id));
         if (tab === "contas") setBankAccounts((prev) => prev.filter((x) => x.id !== id));
         if (tab === "categorias") setCategories((prev) => prev.filter((x) => x.id !== id));
+        if (tab === "importacoes") setImports((prev) => prev.filter((x) => x.id !== id));
         setConfirmDelete((prev) => ({ ...prev, [tab]: null }));
       } else {
         const body = await response.json().catch(() => ({}));
@@ -220,7 +229,7 @@ export default function SettingsPage() {
   return (
     <div className="p-8 max-w-2xl">
       <div className="mb-6 flex gap-1 border-b border-zinc-200">
-        {(["pessoas", "cartoes", "contas", "categorias"] as Tab[]).map((t) => (
+        {(["pessoas", "cartoes", "contas", "categorias", "importacoes"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -376,6 +385,28 @@ export default function SettingsPage() {
             ))}
             {categories.length === 0 && <li className="text-sm text-zinc-400">Nenhuma categoria cadastrada.</li>}
           </ul>
+        </div>
+      )}
+
+      {tab === "importacoes" && (
+        <div className="flex flex-col gap-3">
+          <p className="text-xs text-zinc-500">Excluir uma importação remove todos os lançamentos associados.</p>
+          {imports.length === 0 && <p className="text-sm text-zinc-400">Nenhuma importação encontrada.</p>}
+          {imports.map((imp) => {
+            const MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+            const source = imp.cardName ?? imp.accountName ?? "—";
+            const period = imp.year && imp.month ? `${MONTHS[imp.month - 1]}/${imp.year}` : "";
+            const label = `${imp.type === "fatura" ? "Fatura" : "Extrato"} · ${source}${period ? ` · ${period}` : ""} · ${imp.txCount} lançamento(s)`;
+            return (
+              <div key={imp.id} className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3">
+                <div>
+                  <p className="text-sm text-zinc-800">{label}</p>
+                  <p className="text-xs text-zinc-400">{imp.fileName} · importado em {new Date(imp.importedAt).toLocaleDateString("pt-BR")}</p>
+                </div>
+                <DeleteControls tab="importacoes" id={imp.id} endpoint="/api/statement-imports" />
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

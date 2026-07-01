@@ -62,6 +62,14 @@ export default function TransactionsPage() {
     );
   }
 
+  const [confirmDeleteTx, setConfirmDeleteTx] = useState<number | null>(null);
+
+  async function deleteTransaction(id: number) {
+    await fetch(`/api/transactions/${id}`, { method: "DELETE" });
+    setAllTransactions((prev) => prev.filter((t) => t.id !== id));
+    setConfirmDeleteTx(null);
+  }
+
   function sourceName(tx: Transaction) {
     if (tx.cardId) {
       const card = cards.find((c) => c.id === tx.cardId);
@@ -151,6 +159,7 @@ export default function TransactionsPage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Descrição</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">Valor</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Categoria</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 bg-white">
@@ -191,6 +200,16 @@ export default function TransactionsPage() {
                           <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
+                    )}
+                  </td>
+                  <td className="px-2 py-3 whitespace-nowrap">
+                    {confirmDeleteTx === tx.id ? (
+                      <span className="flex items-center gap-1">
+                        <button onClick={() => deleteTransaction(tx.id)} className="rounded border border-red-200 px-2 py-0.5 text-xs text-red-600 hover:bg-red-50 transition-colors">Confirmar</button>
+                        <button onClick={() => setConfirmDeleteTx(null)} className="rounded border border-zinc-200 px-2 py-0.5 text-xs text-zinc-500 hover:bg-zinc-50 transition-colors">Cancelar</button>
+                      </span>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteTx(tx.id)} className="text-zinc-300 hover:text-red-400 transition-colors text-xs" title="Excluir">✕</button>
                     )}
                   </td>
                 </tr>
