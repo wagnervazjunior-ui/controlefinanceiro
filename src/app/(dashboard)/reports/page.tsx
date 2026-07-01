@@ -16,6 +16,14 @@ interface PersonTotal {
   isMain: boolean;
 }
 
+interface PersonCategoryBreakdown {
+  personId: number;
+  personName: string;
+  isMain: boolean;
+  total: number;
+  categories: { categoryId: number; categoryName: string; total: number }[];
+}
+
 interface Month {
   id: number;
   year: number;
@@ -36,6 +44,7 @@ export default function ReportsPage() {
   const [selectedMonthId, setSelectedMonthId] = useState<string>("");
   const [categoryTotals, setCategoryTotals] = useState<CategoryTotal[]>([]);
   const [personTotals, setPersonTotals] = useState<PersonTotal[]>([]);
+  const [categoryByPerson, setCategoryByPerson] = useState<PersonCategoryBreakdown[]>([]);
 
   useEffect(() => {
     fetch("/api/months")
@@ -59,6 +68,7 @@ export default function ReportsPage() {
     const qs = selectedMonthId ? `?monthId=${selectedMonthId}` : "";
     fetch(`/api/reports/category-totals${qs}`).then((r) => r.json()).then(setCategoryTotals);
     fetch(`/api/reports/person-totals${qs}`).then((r) => r.json()).then(setPersonTotals);
+    fetch(`/api/reports/category-by-person${qs}`).then((r) => r.json()).then(setCategoryByPerson);
   }, [selectedMonthId]);
 
   // In credit-card faturas, purchases are stored as positive amounts, so an
@@ -212,6 +222,43 @@ export default function ReportsPage() {
           </div>
         </section>
       )}
+
+      {/* Category breakdown per person */}
+      {categoryByPerson.map((person) => (
+        <section key={person.personId}>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">
+            Detalhamento — {person.personName}
+            {person.isMain && <span className="ml-2 rounded-full bg-zinc-100 px-1.5 py-0.5 text-xs normal-case tracking-normal text-zinc-500">principal</span>}
+          </h2>
+          <div className="rounded-lg border border-zinc-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-zinc-50 border-b border-zinc-200">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">Categoria</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">Total</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500">% da pessoa</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 bg-white">
+                {person.categories.map((c) => (
+                  <tr key={c.categoryId} className="hover:bg-zinc-50">
+                    <td className="px-4 py-3 text-zinc-800">{c.categoryName}</td>
+                    <td className="px-4 py-3 text-right font-mono text-zinc-800">{fmt(c.total)}</td>
+                    <td className="px-4 py-3 text-right text-zinc-500">
+                      {person.total > 0 ? ((c.total / person.total) * 100).toFixed(1) : 0}%
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t border-zinc-200 bg-zinc-50 font-medium">
+                  <td className="px-4 py-3 text-zinc-800">Total</td>
+                  <td className="px-4 py-3 text-right font-mono text-zinc-900">{fmt(person.total)}</td>
+                  <td className="px-4 py-3" />
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ))}
 
       {chartData.length === 0 && personTotals.length === 0 && (
         <div className="rounded-lg border border-zinc-200 bg-white px-6 py-12 text-center">
