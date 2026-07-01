@@ -42,6 +42,7 @@ export default function TransactionsPage() {
 
   const [showAll, setShowAll] = useState(false);
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetch("/api/transactions").then((r) => r.json()).then(setAllTransactions).catch(console.error);
@@ -75,6 +76,7 @@ export default function TransactionsPage() {
 
   const transactions = allTransactions.filter((tx) => {
     if (!showAll && tx.categoryId !== null) return false;
+    if (search && !tx.description.toLowerCase().includes(search.toLowerCase())) return false;
     if (sourceFilter === "all") return true;
     if (sourceFilter.startsWith("card:")) return tx.cardId === Number(sourceFilter.slice(5));
     if (sourceFilter.startsWith("account:")) return tx.bankAccountId === Number(sourceFilter.slice(8));
@@ -85,7 +87,7 @@ export default function TransactionsPage() {
 
   return (
     <div className="p-8">
-      <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
+      <div className="mb-6 flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-white p-1">
           <button
             onClick={() => setShowAll(false)}
@@ -105,6 +107,14 @@ export default function TransactionsPage() {
             Todos
           </button>
         </div>
+
+        <input
+          type="text"
+          placeholder="Buscar descrição..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm focus:border-zinc-500 focus:outline-none w-56"
+        />
 
         <select
           value={sourceFilter}
