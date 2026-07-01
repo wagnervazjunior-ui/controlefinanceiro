@@ -76,6 +76,73 @@ function parseSection(
   return results;
 }
 
+// Fallback for consolidated / two-column faturas whose section headers get
+// concatenated without spaces (e.g. "Lançamentos:comprase saques"), which the
+// section-based parser above cannot locate. Here we scan every line for the
+// transaction pattern instead of relying on section boundaries.
+const FALLBACK_TX_RE =
+  /^(\d{2})\/(\d{2})(.+?)(?:(\d{2})\/(\d{2}))?(-?\s*\d{1,3}(?:\.\d{3})*,\d{2})$/;
+const IOF_REPASSE_RE = /Repasse\s*de IOF em R\$\s*([\d.]+,\d{2})/;
+
+function parseFaturaFallback(
+  text: string,
+  referenceYear: number,
+  referenceMonth: number
+): ParsedTransaction[] {
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const results: ParsedTransaction[] = [];
+  // Track installment purchases already seen so the "Compras parceladas -
+  // próximas faturas" preview (same description + total, higher counter,
+  // appearing later in the document) is dropped instead of imported.
+  const seenInstallments = new Set<string>();
+
+  for (const line of lines) {
+    const match = line.match(FALLBACK_TX_RE);
+    if (!match) continue;
+    const [, day, month, descRaw, instCur, instTot, amountRaw] = match;
+    const description = descRaw.trim();
+    if (!description) continue;
+
+    const installmentCurrent = instCur ? Number(instCur) : undefined;
+    const installmentTotal = instTot ? Number(instTot) : undefined;
+
+    if (installmentTotal != null) {
+      const key = `${description}|${installmentTotal}`;
+      if (seenInstallments.has(key)) continue;
+      seenInstallments.add(key);
+    }
+
+    results.push({
+      date: toIsoDate(day, month, referenceYear, referenceMonth),
+      description,
+      amount: parseBrazilianAmount(amountRaw.replace(/\s/g, "")),
+      installmentCurrent,
+      installmentTotal,
+      bankSuggestedTag: undefined,
+    });
+  }
+
+  // The IOF repasse on international purchases is a summary line without a
+  // date, so synthesize it as a transaction so the imported total matches the
+  // fatura total.
+  const iofMatch = text.match(IOF_REPASSE_RE);
+  if (iofMatch) {
+    results.push({
+      date: `${referenceYear}-${String(referenceMonth).padStart(2, "0")}-01`,
+      description: "Repasse de IOF",
+      amount: parseBrazilianAmount(iofMatch[1]),
+      installmentCurrent: undefined,
+      installmentTotal: undefined,
+      bankSuggestedTag: undefined,
+    });
+  }
+
+  return results;
+}
+
 export function parseFaturaText(
   text: string,
   referenceYear: number,
@@ -96,6 +163,13 @@ export function parseFaturaText(
   const internacionaisMatch = text.match(INTERNACIONAIS_SECTION_RE);
   if (internacionaisMatch) {
     transactions.push(...parseSection(internacionaisMatch[1], referenceYear, referenceMonth, false));
+  }
+
+  // The section-based parser handles the classic single-card layout. If it
+  // finds nothing, this is likely a consolidated/two-column fatura — fall back
+  // to line scanning.
+  if (transactions.length === 0) {
+    return parseFaturaFallback(text, referenceYear, referenceMonth);
   }
 
   return transactions;

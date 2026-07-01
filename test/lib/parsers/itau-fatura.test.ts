@@ -13,8 +13,10 @@ describe("parseFaturaText", () => {
 
   it("parses a transaction with installment and bank tag", () => {
     const tx = result.find((t) => t.description.includes("NCL *60319496"));
+    // Nov transaction on a May fatura → previous year (installment purchased
+    // months earlier), per toIsoDate's year-boundary logic.
     expect(tx).toMatchObject({
-      date: "2026-11-09",
+      date: "2025-11-09",
       installmentCurrent: 7,
       installmentTotal: 12,
       amount: 1316.56,
