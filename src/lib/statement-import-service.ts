@@ -27,9 +27,12 @@ export async function importFatura(input: {
   let created = 0;
   let skipped = 0;
 
+  // All transactions in a fatura belong to the fatura's reference month,
+  // regardless of the actual transaction date (e.g. a May fatura closing
+  // on June 3rd has June transactions that still count as May expenses).
+  const month = await getOrCreateMonth(input.referenceYear, input.referenceMonth);
+
   for (const tx of parsed) {
-    const [txYear, txMonth] = tx.date.split("-").map(Number);
-    const month = await getOrCreateMonth(txYear, txMonth);
 
     // Installments of the same original purchase share the same date,
     // description, and amount in Itau fatura statements (only the
