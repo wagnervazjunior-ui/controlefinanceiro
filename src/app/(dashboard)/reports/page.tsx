@@ -129,14 +129,22 @@ export default function ReportsPage() {
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">Por categoria</h2>
           <div className="rounded-lg border border-zinc-200 bg-white p-4">
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={320}>
               <PieChart>
-                <Pie data={chartData} dataKey="value" nameKey="name" outerRadius={100} label={false}>
+                <Pie
+                  data={chartData}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={100}
+                  label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
+                  labelLine={true}
+                >
                   {chartData.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(v) => fmt(Number(v))} />
+                <Legend />
               </PieChart>
             </ResponsiveContainer>
           </div>
