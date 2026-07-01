@@ -44,6 +44,11 @@ export default function LoginPage() {
             <input
               id="email"
               type="email"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              autoComplete="email"
+              spellCheck={false}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none"
