@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList } from "recharts";
 
 interface CategoryTotal {
   categoryId: number | null;
@@ -64,19 +64,11 @@ export default function ReportsPage() {
   // In credit-card faturas, purchases are stored as positive amounts, so an
   // expense is a positive total (refunds/credits are negative).
   const expenses = categoryTotals.filter((c) => Number(c.total) > 0);
-  // Group into the top slices + "Outros" so the pie stays readable with many
-  // categories.
-  const TOP_N = 7;
-  const sortedExpenses = [...expenses]
+  // Sorted descending; a horizontal bar chart reads cleanly even with many
+  // categories, so we show them all.
+  const chartData = [...expenses]
     .map((c) => ({ name: c.categoryName ?? "Sem categoria", value: Math.abs(Number(c.total)) }))
     .sort((a, b) => b.value - a.value);
-  const chartData =
-    sortedExpenses.length > TOP_N + 1
-      ? [
-          ...sortedExpenses.slice(0, TOP_N),
-          { name: "Outros", value: sortedExpenses.slice(TOP_N).reduce((s, c) => s + c.value, 0) },
-        ]
-      : sortedExpenses;
 
   const personBarData = personTotals
     .filter((p) => p.total > 0)
@@ -139,28 +131,34 @@ export default function ReportsPage() {
         </section>
       )}
 
-      {/* Category pie chart */}
+      {/* Category horizontal bar chart — reads cleanly with many categories */}
       {chartData.length > 0 && (
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">Por categoria</h2>
           <div className="rounded-lg border border-zinc-200 bg-white p-4">
-            <ResponsiveContainer width="100%" height={320}>
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius={100}
-                  label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
-                  labelLine={true}
-                >
+            <ResponsiveContainer width="100%" height={Math.max(240, chartData.length * 34)}>
+              <BarChart
+                data={chartData}
+                layout="vertical"
+                margin={{ top: 0, right: 60, left: 10, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => fmt(Number(v))} />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={140}
+                  tick={{ fontSize: 12 }}
+                  interval={0}
+                />
+                <Tooltip formatter={(v) => fmt(Number(v))} />
+                <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                   {chartData.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
-                </Pie>
-                <Tooltip formatter={(v) => fmt(Number(v))} />
-                <Legend />
-              </PieChart>
+                  <LabelList dataKey="value" position="right" formatter={(v) => fmt(Number(v))} style={{ fontSize: 11, fill: "#52525b" }} />
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </section>
