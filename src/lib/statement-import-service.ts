@@ -33,6 +33,10 @@ export async function importFatura(input: {
   // on June 3rd has June transactions that still count as May expenses).
   const month = await getOrCreateMonth(input.referenceYear, input.referenceMonth);
 
+  // Track how many times each base dedupe key appears in this import batch,
+  // so identical transactions (same date/description/amount) get unique keys.
+  const keyCounters = new Map<string, number>();
+
   for (const tx of parsed) {
 
     // Installments of the same original purchase share the same date,
@@ -45,12 +49,16 @@ export async function importFatura(input: {
         ? `${tx.description} ${tx.installmentCurrent}/${tx.installmentTotal}`
         : tx.description;
 
-    const dedupeKey = buildDedupeKey({
+    const baseKey = buildDedupeKey({
       date: tx.date,
       description: dedupeDescription,
       amount: tx.amount,
       source: `card:${input.cardId}`,
     });
+
+    const occurrence = (keyCounters.get(baseKey) ?? 0) + 1;
+    keyCounters.set(baseKey, occurrence);
+    const dedupeKey = occurrence === 1 ? baseKey : `${baseKey}#${occurrence}`;
 
     const existing = await db
       .select()
