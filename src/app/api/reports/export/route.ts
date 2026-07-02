@@ -83,7 +83,8 @@ export async function GET(request: NextRequest) {
     // Normalize sign so expenses are positive (extrato debits are negative).
     const amount = tx.bankAccountId != null ? -Number(tx.amount) : Number(tx.amount);
 
-    const relevant = splits.filter((s) => s.categoryId === tx.categoryId);
+    // Ignore 0% splits — the transaction shouldn't show in that person's report.
+    const relevant = splits.filter((s) => s.categoryId === tx.categoryId && Number(s.percentage) > 0);
     const distribution =
       relevant.length > 0
         ? relevant.map((s) => ({ personId: s.personId, pct: Number(s.percentage) }))
