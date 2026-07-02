@@ -16,10 +16,15 @@ export const runtime = "nodejs";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
-const HEADER_FILL = "FF18181B"; // zinc-900
+const HEADER_FILL = "FF18181B"; // zinc-900 (Resumo)
 const ZEBRA_FILL = "FFF4F4F5"; // zinc-100
 const TOTAL_FILL = "FFE4E4E7"; // zinc-200
 const CURRENCY_FMT = 'R$ #,##0.00;[Red]-R$ #,##0.00';
+const THIN_BORDER = { style: "thin" as const, color: { argb: "FFE4E4E7" } };
+const CELL_BORDER = { top: THIN_BORDER, bottom: THIN_BORDER, left: THIN_BORDER, right: THIN_BORDER };
+
+// Accent color per person, cycled across their sheets (header fill + tab color).
+const PERSON_COLORS = ["FF1D4ED8", "FF9333EA", "FF0D9488", "FFB45309", "FFBE185D", "FF4338CA"];
 
 interface Row {
   date: string;
@@ -32,12 +37,12 @@ interface Row {
   share: number;
 }
 
-function styleHeader(row: ExcelJS.Row) {
+function styleHeader(row: ExcelJS.Row, fill: string = HEADER_FILL) {
   row.eachCell((cell) => {
     cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_FILL } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: fill } };
     cell.alignment = { vertical: "middle" };
-    cell.border = { bottom: { style: "thin", color: { argb: "FF52525B" } } };
+    cell.border = CELL_BORDER;
   });
   row.height = 20;
 }
@@ -123,20 +128,28 @@ export async function GET(request: NextRequest) {
   const peopleWithData = allPeople.filter((p) => (perPerson.get(p.id)?.length ?? 0) > 0);
   peopleWithData.forEach((p, i) => {
     const r = resumo.addRow({ pessoa: p.name, total: Number((totals.get(p.id) ?? 0).toFixed(2)) });
-    if (i % 2 === 1) r.eachCell((c) => { c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ZEBRA_FILL } }; });
+    r.eachCell((c) => {
+      c.border = CELL_BORDER;
+      if (i % 2 === 1) c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ZEBRA_FILL } };
+    });
   });
   const grandTotal = peopleWithData.reduce((s, p) => s + (totals.get(p.id) ?? 0), 0);
   const totalRow = resumo.addRow({ pessoa: "Total geral", total: Number(grandTotal.toFixed(2)) });
   totalRow.eachCell((c) => {
     c.font = { bold: true };
     c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TOTAL_FILL } };
+    c.border = CELL_BORDER;
   });
 
   // --- One sheet per person ---
-  for (const p of peopleWithData) {
+  peopleWithData.forEach((p, personIdx) => {
     const rows = perPerson.get(p.id)!;
+    const accent = PERSON_COLORS[personIdx % PERSON_COLORS.length];
     const name = p.name.replace(/[\\/?*[\]:]/g, "").slice(0, 31) || `Pessoa ${p.id}`;
-    const ws = wb.addWorksheet(name, { views: [{ state: "frozen", ySplit: 1 }] });
+    const ws = wb.addWorksheet(name, {
+      views: [{ state: "frozen", ySplit: 1 }],
+      properties: { tabColor: { argb: accent } },
+    });
     ws.columns = [
       { header: "Data", key: "date", width: 12 },
       { header: "Origem", key: "origem", width: 18 },
@@ -147,13 +160,16 @@ export async function GET(request: NextRequest) {
       { header: "Valor total", key: "total", width: 16, style: { numFmt: CURRENCY_FMT } },
       { header: "Valor da pessoa", key: "share", width: 18, style: { numFmt: CURRENCY_FMT } },
     ];
-    styleHeader(ws.getRow(1));
+    styleHeader(ws.getRow(1), accent);
 
     rows
       .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
       .forEach((row, i) => {
         const r = ws.addRow(row);
-        if (i % 2 === 1) r.eachCell((c) => { c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ZEBRA_FILL } }; });
+        r.eachCell((c) => {
+          c.border = CELL_BORDER;
+          if (i % 2 === 1) c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ZEBRA_FILL } };
+        });
       });
 
     const sheetTotal = rows.reduce((s, r) => s + r.share, 0);
@@ -161,9 +177,10 @@ export async function GET(request: NextRequest) {
     tRow.eachCell((c) => {
       c.font = { bold: true };
       c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TOTAL_FILL } };
+      c.border = CELL_BORDER;
     });
     ws.autoFilter = { from: "A1", to: "H1" };
-  }
+  });
 
   const arrayBuffer = await wb.xlsx.writeBuffer();
 
