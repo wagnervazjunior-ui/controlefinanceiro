@@ -81,10 +81,6 @@ export default function ReportsPage() {
     .map((c) => ({ name: c.categoryName ?? "Sem categoria", value: Math.abs(Number(c.total)) }))
     .sort((a, b) => b.value - a.value);
 
-  const personBarData = personTotals
-    .filter((p) => p.total > 0)
-    .map((p) => ({ name: p.personName, value: Math.abs(p.total) }));
-
   const totalExpenses = expenses.reduce((sum, c) => sum + Math.abs(Number(c.total)), 0);
 
   return (
@@ -169,24 +165,6 @@ export default function ReportsPage() {
                   ))}
                   <LabelList dataKey="value" position="right" formatter={(v) => fmt(Number(v))} style={{ fontSize: 11, fill: "#52525b" }} />
                 </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </section>
-      )}
-
-      {/* Per-person bar chart */}
-      {personBarData.length > 1 && (
-        <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">Comparativo por pessoa</h2>
-          <div className="rounded-lg border border-zinc-200 bg-white p-4">
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={personBarData} margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v) => fmt(Number(v))} />
-                <Bar dataKey="value" fill="#18181b" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
