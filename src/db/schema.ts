@@ -92,6 +92,17 @@ export const incomes = pgTable("incomes", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const settlements = pgTable("settlements", {
+  id: serial("id").primaryKey(),
+  personId: integer("person_id").notNull().references(() => people.id, { onDelete: "cascade" }),
+  monthId: integer("month_id").notNull().references(() => months.id),
+  paidAmount: numeric("paid_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  confirmed: boolean("confirmed").notNull().default(false),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  personMonthIdx: uniqueIndex("settlements_person_month_idx").on(table.personId, table.monthId),
+}));
+
 export const investments = pgTable("investments", {
   id: serial("id").primaryKey(),
   assetType: text("asset_type").notNull(),
