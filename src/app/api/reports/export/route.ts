@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { db } from "../../../../db/client";
 import {
   transactions,
@@ -15,6 +15,32 @@ import {
 export const runtime = "nodejs";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+const HEADER_FILL = "FF18181B"; // zinc-900
+const ZEBRA_FILL = "FFF4F4F5"; // zinc-100
+const TOTAL_FILL = "FFE4E4E7"; // zinc-200
+const CURRENCY_FMT = 'R$ #,##0.00;[Red]-R$ #,##0.00';
+
+interface Row {
+  date: string;
+  origem: string;
+  description: string;
+  category: string;
+  parcela: string;
+  pct: number;
+  total: number;
+  share: number;
+}
+
+function styleHeader(row: ExcelJS.Row) {
+  row.eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: HEADER_FILL } };
+    cell.alignment = { vertical: "middle" };
+    cell.border = { bottom: { style: "thin", color: { argb: "FF52525B" } } };
+  });
+  row.height = 20;
+}
 
 export async function GET(request: NextRequest) {
   const monthId = request.nextUrl.searchParams.get("monthId");
@@ -37,11 +63,10 @@ export async function GET(request: NextRequest) {
   const cardById = new Map(allCards.map((c) => [c.id, c]));
   const accountById = new Map(allAccounts.map((a) => [a.id, a]));
 
-  // person id -> rows for its sheet
-  const perPerson = new Map<number, (string | number)[][]>();
+  const perPerson = new Map<number, Row[]>();
   const totals = new Map<number, number>();
   for (const p of allPeople) {
-    perPerson.set(p.id, [["Data", "Origem", "Descrição", "Categoria", "Parcela", "% Pessoa", "Valor total", "Valor da pessoa"]]);
+    perPerson.set(p.id, []);
     totals.set(p.id, 0);
   }
 
@@ -70,38 +95,77 @@ export async function GET(request: NextRequest) {
 
     for (const { personId, pct } of distribution) {
       const share = amount * (pct / 100);
-      perPerson.get(personId)?.push([
-        tx.date,
+      perPerson.get(personId)?.push({
+        date: tx.date,
         origem,
-        tx.description,
-        category.name,
+        description: tx.description,
+        category: category.name,
         parcela,
         pct,
-        Number(amount.toFixed(2)),
-        Number(share.toFixed(2)),
-      ]);
+        total: Number(amount.toFixed(2)),
+        share: Number(share.toFixed(2)),
+      });
       totals.set(personId, (totals.get(personId) ?? 0) + share);
     }
   }
 
-  const wb = XLSX.utils.book_new();
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Controle Financeiro";
+  wb.created = new Date();
 
-  // Summary sheet
-  const summary: (string | number)[][] = [["Pessoa", "Total (R$)"]];
-  for (const p of allPeople) summary.push([p.name, Number((totals.get(p.id) ?? 0).toFixed(2))]);
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), "Resumo");
+  // --- Resumo sheet ---
+  const resumo = wb.addWorksheet("Resumo", { views: [{ state: "frozen", ySplit: 1 }] });
+  resumo.columns = [
+    { header: "Pessoa", key: "pessoa", width: 28 },
+    { header: "Total (R$)", key: "total", width: 18, style: { numFmt: CURRENCY_FMT } },
+  ];
+  styleHeader(resumo.getRow(1));
+  const peopleWithData = allPeople.filter((p) => (perPerson.get(p.id)?.length ?? 0) > 0);
+  peopleWithData.forEach((p, i) => {
+    const r = resumo.addRow({ pessoa: p.name, total: Number((totals.get(p.id) ?? 0).toFixed(2)) });
+    if (i % 2 === 1) r.eachCell((c) => { c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ZEBRA_FILL } }; });
+  });
+  const grandTotal = peopleWithData.reduce((s, p) => s + (totals.get(p.id) ?? 0), 0);
+  const totalRow = resumo.addRow({ pessoa: "Total geral", total: Number(grandTotal.toFixed(2)) });
+  totalRow.eachCell((c) => {
+    c.font = { bold: true };
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TOTAL_FILL } };
+  });
 
-  // One sheet per person (only those with rows beyond the header)
-  for (const p of allPeople) {
+  // --- One sheet per person ---
+  for (const p of peopleWithData) {
     const rows = perPerson.get(p.id)!;
-    if (rows.length <= 1) continue;
-    const sheet = XLSX.utils.aoa_to_sheet(rows);
-    // sanitize sheet name (Excel forbids some chars, max 31 chars)
     const name = p.name.replace(/[\\/?*[\]:]/g, "").slice(0, 31) || `Pessoa ${p.id}`;
-    XLSX.utils.book_append_sheet(wb, sheet, name);
+    const ws = wb.addWorksheet(name, { views: [{ state: "frozen", ySplit: 1 }] });
+    ws.columns = [
+      { header: "Data", key: "date", width: 12 },
+      { header: "Origem", key: "origem", width: 18 },
+      { header: "Descrição", key: "description", width: 40 },
+      { header: "Categoria", key: "category", width: 22 },
+      { header: "Parcela", key: "parcela", width: 10 },
+      { header: "% Pessoa", key: "pct", width: 10, style: { numFmt: '0"%"' } },
+      { header: "Valor total", key: "total", width: 16, style: { numFmt: CURRENCY_FMT } },
+      { header: "Valor da pessoa", key: "share", width: 18, style: { numFmt: CURRENCY_FMT } },
+    ];
+    styleHeader(ws.getRow(1));
+
+    rows
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+      .forEach((row, i) => {
+        const r = ws.addRow(row);
+        if (i % 2 === 1) r.eachCell((c) => { c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ZEBRA_FILL } }; });
+      });
+
+    const sheetTotal = rows.reduce((s, r) => s + r.share, 0);
+    const tRow = ws.addRow({ description: "Total", share: Number(sheetTotal.toFixed(2)) });
+    tRow.eachCell((c) => {
+      c.font = { bold: true };
+      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TOTAL_FILL } };
+    });
+    ws.autoFilter = { from: "A1", to: "H1" };
   }
 
-  const buffer = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+  const arrayBuffer = await wb.xlsx.writeBuffer();
 
   const period = monthId
     ? (() => {
@@ -110,7 +174,7 @@ export async function GET(request: NextRequest) {
       })()
     : "todos-os-meses";
 
-  return new NextResponse(buffer, {
+  return new NextResponse(arrayBuffer as ArrayBuffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": `attachment; filename="relatorio-${period}.xlsx"`,
