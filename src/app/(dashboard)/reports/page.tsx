@@ -45,6 +45,7 @@ export default function ReportsPage() {
   const [categoryTotals, setCategoryTotals] = useState<CategoryTotal[]>([]);
   const [personTotals, setPersonTotals] = useState<PersonTotal[]>([]);
   const [categoryByPerson, setCategoryByPerson] = useState<PersonCategoryBreakdown[]>([]);
+  const [selectedPersonId, setSelectedPersonId] = useState<number | "all">("all");
 
   useEffect(() => {
     fetch("/api/months")
@@ -223,8 +224,30 @@ export default function ReportsPage() {
         </section>
       )}
 
-      {/* Category breakdown per person */}
-      {categoryByPerson.map((person) => (
+      {/* Category breakdown per person, with a person selector */}
+      {categoryByPerson.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium text-zinc-700 mr-1">Detalhamento de:</span>
+          <button
+            onClick={() => setSelectedPersonId("all")}
+            className={`rounded-md px-3 py-1.5 text-sm transition-colors ${selectedPersonId === "all" ? "bg-zinc-900 text-white font-medium" : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"}`}
+          >
+            Todos
+          </button>
+          {categoryByPerson.map((p) => (
+            <button
+              key={p.personId}
+              onClick={() => setSelectedPersonId(p.personId)}
+              className={`rounded-md px-3 py-1.5 text-sm transition-colors ${selectedPersonId === p.personId ? "bg-zinc-900 text-white font-medium" : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"}`}
+            >
+              {p.personName}
+            </button>
+          ))}
+        </div>
+      )}
+      {categoryByPerson
+        .filter((person) => selectedPersonId === "all" || person.personId === selectedPersonId)
+        .map((person) => (
         <section key={person.personId}>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">
             Detalhamento — {person.personName}
