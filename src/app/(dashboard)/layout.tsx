@@ -7,6 +7,7 @@ import { signOutAction } from "../../lib/auth-client";
 const NAV_ITEMS = [
   { href: "/transactions", label: "Transações" },
   { href: "/import", label: "Importar" },
+  { href: "/receitas", label: "Receitas" },
   { href: "/reports", label: "Relatórios" },
   { href: "/investments", label: "Investimentos" },
   { href: "/settings", label: "Cadastros" },

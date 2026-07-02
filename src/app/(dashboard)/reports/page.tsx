@@ -45,6 +45,7 @@ export default function ReportsPage() {
   const [categoryTotals, setCategoryTotals] = useState<CategoryTotal[]>([]);
   const [personTotals, setPersonTotals] = useState<PersonTotal[]>([]);
   const [categoryByPerson, setCategoryByPerson] = useState<PersonCategoryBreakdown[]>([]);
+  const [incomeTotals, setIncomeTotals] = useState<{ personId: number; total: number }[]>([]);
   const [selectedPersonId, setSelectedPersonId] = useState<number | "all">("all");
 
   useEffect(() => {
@@ -70,6 +71,7 @@ export default function ReportsPage() {
     fetch(`/api/reports/category-totals${qs}`).then((r) => r.json()).then(setCategoryTotals);
     fetch(`/api/reports/person-totals${qs}`).then((r) => r.json()).then(setPersonTotals);
     fetch(`/api/reports/category-by-person${qs}`).then((r) => r.json()).then(setCategoryByPerson);
+    fetch(`/api/reports/income-totals${qs}`).then((r) => r.json()).then(setIncomeTotals);
   }, [selectedMonthId]);
 
   // In credit-card faturas, purchases are stored as positive amounts, so an
@@ -116,7 +118,10 @@ export default function ReportsPage() {
             {personTotals
               .filter((p) => p.total > 0)
               .sort((a, b) => b.total - a.total)
-              .map((p) => (
+              .map((p) => {
+                const receita = incomeTotals.find((i) => i.personId === p.personId)?.total ?? 0;
+                const saldo = receita - p.total;
+                return (
                 <div key={p.personId} className="rounded-lg border border-zinc-200 bg-white p-4">
                   <div className="flex items-center gap-1.5 mb-1">
                     <span className="text-xs font-medium text-zinc-500">{p.personName}</span>
@@ -124,12 +129,25 @@ export default function ReportsPage() {
                       <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-500">principal</span>
                     )}
                   </div>
+                  <p className="text-xs text-zinc-400">Despesas</p>
                   <p className="text-xl font-semibold text-zinc-900">{fmt(p.total)}</p>
-                  <p className="text-xs text-zinc-400 mt-0.5">
-                    {totalExpenses > 0 ? ((Math.abs(p.total) / totalExpenses) * 100).toFixed(0) : 0}% do total
-                  </p>
+                  {receita > 0 && (
+                    <div className="mt-2 border-t border-zinc-100 pt-2 flex flex-col gap-0.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-zinc-400">Receitas</span>
+                        <span className="font-medium text-emerald-700">{fmt(receita)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-zinc-400">Saldo</span>
+                        <span className={`font-semibold ${saldo >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                          {saldo < 0 ? `-${fmt(saldo)}` : fmt(saldo)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
               <p className="text-xs font-medium text-zinc-400 mb-1">Total geral</p>
               <p className="text-xl font-semibold text-zinc-900">{fmt(totalExpenses)}</p>
