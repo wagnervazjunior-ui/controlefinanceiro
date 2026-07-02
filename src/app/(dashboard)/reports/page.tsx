@@ -193,8 +193,30 @@ export default function ReportsPage() {
         </section>
       )}
 
-      {/* Category breakdown table */}
-      {expenses.length > 0 && (
+      {/* Detail selector: "Todos" = overall by category, or a specific person */}
+      {(expenses.length > 0 || categoryByPerson.length > 0) && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium text-zinc-700 mr-1">Detalhamento de:</span>
+          <button
+            onClick={() => setSelectedPersonId("all")}
+            className={`rounded-md px-3 py-1.5 text-sm transition-colors ${selectedPersonId === "all" ? "bg-zinc-900 text-white font-medium" : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"}`}
+          >
+            Todos
+          </button>
+          {categoryByPerson.map((p) => (
+            <button
+              key={p.personId}
+              onClick={() => setSelectedPersonId(p.personId)}
+              className={`rounded-md px-3 py-1.5 text-sm transition-colors ${selectedPersonId === p.personId ? "bg-zinc-900 text-white font-medium" : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"}`}
+            >
+              {p.personName}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Overall category breakdown table (when "Todos" is selected) */}
+      {selectedPersonId === "all" && expenses.length > 0 && (
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">Detalhamento por categoria</h2>
           <div className="rounded-lg border border-zinc-200 overflow-hidden">
@@ -224,29 +246,9 @@ export default function ReportsPage() {
         </section>
       )}
 
-      {/* Category breakdown per person, with a person selector */}
-      {categoryByPerson.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-zinc-700 mr-1">Detalhamento de:</span>
-          <button
-            onClick={() => setSelectedPersonId("all")}
-            className={`rounded-md px-3 py-1.5 text-sm transition-colors ${selectedPersonId === "all" ? "bg-zinc-900 text-white font-medium" : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"}`}
-          >
-            Todos
-          </button>
-          {categoryByPerson.map((p) => (
-            <button
-              key={p.personId}
-              onClick={() => setSelectedPersonId(p.personId)}
-              className={`rounded-md px-3 py-1.5 text-sm transition-colors ${selectedPersonId === p.personId ? "bg-zinc-900 text-white font-medium" : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"}`}
-            >
-              {p.personName}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Per-person category breakdown (when a specific person is selected) */}
       {categoryByPerson
-        .filter((person) => selectedPersonId === "all" || person.personId === selectedPersonId)
+        .filter((person) => person.personId === selectedPersonId)
         .map((person) => (
         <section key={person.personId}>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-400">
